@@ -4,6 +4,8 @@ A generic training script that works with any model and dataset.
 Author: Paul-Edouard Sarlin (skydes)
 """
 
+# python train.py my_experiment --conf path/to/config.yaml
+
 import argparse
 import copy
 import re
@@ -17,6 +19,7 @@ import numpy as np
 import torch
 from omegaconf import OmegaConf
 from torch.cuda.amp import GradScaler, autocast
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -36,6 +39,16 @@ from .utils.tools import (
     fork_rng,
     set_seed,
 )
+
+import logging
+
+# Configure logging
+logging.basicConfig(filename='training.log', level=logging.INFO)
+
+def log_metrics(epoch, iteration, metrics):
+    log_message = f"[E {epoch} | it {iteration}] " + ", ".join([f"{k} {v:.3E}" for k, v in metrics.items()])
+    logging.info(log_message)
+    print(log_message)
 
 # @TODO: Fix pbar pollution in logs
 # @TODO: add plotting during evaluation
@@ -255,7 +268,18 @@ def training(rank, conf, output_dir, args):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Using device {device}")
 
-    dataset = get_dataset(data_conf.name)(data_conf)
+
+    # dataset = get_dataset(data_conf.name)(data_conf)
+
+    # 28-05-24 -- to address problem for "data_conf is a configuration object (specifically, a DictConfig from OmegaConf) rather than a simple string or path"
+
+    root_path = data_conf.data_dir  # Ensure this is the correct key for the directory
+    print("Initializing dataset with root path:", root_path)
+    # dataset = get_dataset(data_conf.name)(root=root_xdata_path)
+    # dataset = get_dataset(data_conf.name)(root=root_path)
+
+    dataset_class = get_dataset(data_conf.name)
+    dataset = dataset_class(root=root_path)  # Using the modified constructor
 
     # Optionally load a different validation dataset than the training one
     val_data_conf = conf.get("data_val", None)
@@ -270,11 +294,21 @@ def training(rank, conf, output_dir, args):
         # we train and eval with the same single training batch
         logger.info("Data in overfitting mode")
         assert not args.distributed
-        train_loader = dataset.get_overfit_loader("train")
-        val_loader = val_dataset.get_overfit_loader("val")
+
+        train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
+                                  num_workers=data_conf.num_workers)
+        val_loader = DataLoader(val_dataset, batch_size=data_conf.batch_size, shuffle=False,
+                                num_workers=data_conf.num_workers)
+
+        # train_loader = dataset.get_overfit_loader("train")
+        # val_loader = val_dataset.get_overfit_loader("val")
     else:
-        train_loader = dataset.get_data_loader("train", distributed=args.distributed)
-        val_loader = val_dataset.get_data_loader("val")
+        train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
+                                  num_workers=data_conf.num_workers)
+        val_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=False,
+                                num_workers=data_conf.num_workers)
+        # train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+        # val_loader = val_dataset.get_data_loader("val")
     if rank == 0:
         logger.info(f"Training loader has {len(train_loader)} batches")
         logger.info(f"Validation loader has {len(val_loader)} batches")
@@ -494,6 +528,9 @@ def training(rank, conf, output_dir, args):
                         "training/lr", optimizer.param_groups[0]["lr"], tot_n_samples
                     )
                     writer.add_scalar("training/epoch", epoch, tot_n_samples)
+
+                    # LOGGING!
+                    log_metrics(epoch, it, losses)  # Add this line
 
             if conf.train.log_grad_every_iter is not None:
                 if it % conf.train.log_grad_every_iter == 0:

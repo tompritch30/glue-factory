@@ -1,15 +1,15 @@
 data:
-    name: homographies
-    data_dir: revisitop1m
-    train_size: 150000
-    val_size: 2000
-    batch_size: 128
-    num_workers: 14
-    homography:
-        difficulty: 0.7
-        max_angle: 45
-    photometric:
-        name: lg
+  name: forest_images
+  data_dir: C:\Users\thoma\OneDrive\2023 Masters\Project\ProjectCode\external\glue-factory\gluefactory\datasets\forest_images
+  train_size: 20  # Adjust as necessary, e.g., 80% of your data
+  val_size: 10     # Adjust as necessary, e.g., 20% of your data
+  batch_size: 8    # Smaller batch size for CPU training
+  num_workers: 0   # Less or 1, as multiple workers on CPU can cause issues
+  homography:
+    difficulty: 0.7
+    max_angle: 45
+  photometric:
+    name: lg
 model:
     name: two_view_pipeline
     extractor:
@@ -29,17 +29,17 @@ model:
         flash: false
         checkpointed: true
 train:
-    seed: 0
-    epochs: 40
-    log_every_iter: 100
-    eval_every_iter: 500
-    lr: 1e-4
-    lr_schedule:
-        start: 20
-        type: exp
-        on_epoch: true
-        exp_div_10: 10
-    plot: [5, 'gluefactory.visualization.visualize_batch.make_match_figures']
+  seed: 42
+  epochs: 5  # Fewer epochs due to smaller data size and CPU limitations
+  log_every_iter: 20
+  eval_every_iter: 100
+  lr: 0.0005
+  lr_schedule:
+    start: 5
+    type: exp
+    on_epoch: true
+    exp_div_10: 20
+  plot: [5, 'gluefactory.visualization.visualize_batch.make_match_figures']
 benchmarks:
     hpatches:
       eval:

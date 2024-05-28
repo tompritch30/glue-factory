@@ -60,7 +60,9 @@ class TwoViewPipeline(BaseModel):
             )
 
     def extract_view(self, data, i):
+        # print(data, i)
         data_i = data[f"view{i}"]
+        # print(data_i)
         pred_i = data_i.get("cache", {})
         skip_extract = len(pred_i) > 0 and self.conf.allow_no_extract
         if self.conf.extractor.name and not skip_extract:

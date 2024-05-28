@@ -108,6 +108,12 @@ def gt_matches_from_pose_depth(
 
 @torch.no_grad()
 def gt_matches_from_homography(kp0, kp1, H, pos_th=3, neg_th=6, **kw):
+    #  i added
+    kp0 = kp0.to(torch.float64)
+    kp1 = kp1.to(torch.float64)
+    H = H.to(torch.float64)
+    #
+
     if kp0.shape[1] == 0 or kp1.shape[1] == 0:
         b_size, n_kp0 = kp0.shape[:2]
         n_kp1 = kp1.shape[1]
