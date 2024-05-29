@@ -1,0 +1,10 @@
+INFO:root:[E 0 | it 0] total 3.671E+00, last 3.081E+00, assignment_nll 3.081E+00, nll_pos 5.701E+00, nll_neg 4.618E-01, num_matchable 1.000E+00, num_unmatchable 4.603E+02, confidence 7.065E-01, row_norm 6.629E-01
+INFO:root:[E 0 | it 20] total 1.270E+00, last 1.101E+00, assignment_nll 1.101E+00, nll_pos 2.016E+00, nll_neg 1.856E-01, num_matchable 1.000E+00, num_unmatchable 4.906E+02, confidence 1.712E-01, row_norm 7.949E-01
+INFO:root:[E 1 | it 0] total 1.121E+00, last 1.154E+00, assignment_nll 1.154E+00, nll_pos 1.874E+00, nll_neg 4.338E-01, num_matchable 2.500E+00, num_unmatchable 4.928E+02, confidence 6.427E-02, row_norm 6.264E-01
+INFO:root:[E 1 | it 20] total 1.611E+00, last 1.655E+00, assignment_nll 1.655E+00, nll_pos 2.596E+00, nll_neg 7.141E-01, num_matchable 1.000E+00, num_unmatchable 4.946E+02, confidence 1.282E-02, row_norm 4.712E-01
+INFO:root:[E 2 | it 0] total 9.108E-01, last 8.677E-01, assignment_nll 8.677E-01, nll_pos 1.517E+00, nll_neg 2.179E-01, num_matchable 1.500E+00, num_unmatchable 5.001E+02, confidence 2.597E-02, row_norm 8.292E-01
+INFO:root:[E 2 | it 20] total 5.119E-01, last 4.150E-01, assignment_nll 4.150E-01, nll_pos 7.310E-01, nll_neg 9.906E-02, num_matchable 1.125E+00, num_unmatchable 4.991E+02, confidence 4.045E-02, row_norm 8.944E-01
+INFO:root:[E 3 | it 0] total 4.966E-01, last 4.249E-01, assignment_nll 4.249E-01, nll_pos 6.548E-01, nll_neg 1.951E-01, num_matchable 1.125E+00, num_unmatchable 4.852E+02, confidence 1.416E-02, row_norm 7.970E-01
+INFO:root:[E 3 | it 20] total 1.746E+00, last 1.705E+00, assignment_nll 1.705E+00, nll_pos 3.285E+00, nll_neg 1.250E-01, num_matchable 1.000E+00, num_unmatchable 4.812E+02, confidence 1.333E-02, row_norm 8.949E-01
+INFO:root:[E 4 | it 0] total 1.785E+00, last 1.861E+00, assignment_nll 1.861E+00, nll_pos 3.530E+00, nll_neg 1.924E-01, num_matchable 1.000E+00, num_unmatchable 4.734E+02, confidence 5.838E-03, row_norm 8.414E-01
+INFO:root:[E 4 | it 20] total 1.800E+00, last 1.798E+00, assignment_nll 1.798E+00, nll_pos 3.410E+00, nll_neg 1.855E-01, num_matchable 1.000E+00, num_unmatchable 4.993E+02, confidence 9.515E-03, row_norm 8.530E-01
