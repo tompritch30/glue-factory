@@ -61,20 +61,30 @@ class NLLLoss(nn.Module):
 
     def nll_loss(self, log_assignment, data):
         m, n = data["gt_matches0"].size(-1), data["gt_matches1"].size(-1)
-        positive = data["gt_assignment"].float()
+        positive = (data["gt_assignment"].float())
+        print(f"positive.shape BEFORE: {positive.shape}")
+        # positive.squeeze(1)
         neg0 = (data["gt_matches0"] == -1).float()
         neg1 = (data["gt_matches1"] == -1).float()
 
         # positive.squeeze(0)
+        if positive.dim() > 3:
+            print("positive squeeze!!")
+            positive = positive.squeeze(1)
 
-        m, n = positive.shape[1:3]
+        print("m, n", m, n)
+        # m, n = positive.shape[1:3]
         print(f"log_assignment.shape: {log_assignment.shape}")
         print(f"positive.shape: {positive.shape}")
         print(f"negative0.shape: {neg0.shape}")
         print(f"negative1.shape: {neg1.shape}")
 
-
         weights = torch.zeros_like(log_assignment)
+        ### Ensure positive has compatible shape before assignment
+        if positive.shape[1] != m or positive.shape[2] != n:
+            print("Adjusting positive shape for compatibility")
+            positive = positive[:, :m, :n]
+
         weights[:, :m, :n] = positive
 
         # Ensure neg0 and neg1 have compatible shapes before assignment
