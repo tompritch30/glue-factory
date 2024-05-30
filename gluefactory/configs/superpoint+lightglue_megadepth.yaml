@@ -1,5 +1,9 @@
 data:
-    name: forest
+    name: forest_images
+    root_dir: C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub
+    pose_file: C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/pose_left.txt
+    depth_dir: C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/depth_left
+    transform: null
     preprocessing:
         resize: 1024
         side: long
@@ -24,7 +28,7 @@ model:
     name: two_view_pipeline
     extractor:
         name: gluefactory_nonfree.superpoint
-        max_num_keypoints: 512
+        max_num_keypoints: 256
         force_num_keypoints: True
         detection_threshold: 0.0
         nms_radius: 3

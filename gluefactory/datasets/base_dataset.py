@@ -21,6 +21,10 @@ from ..utils.tools import set_num_threads, set_seed
 
 logger = logging.getLogger(__name__)
 
+# I added
+from gluefactory.geometry.wrappers import Camera
+
+
 
 class LoopSampler(Sampler):
     def __init__(self, loop_size, total_size=None):
@@ -76,6 +80,11 @@ def collate(batch):
         return torch.tensor(batch, dtype=torch.float64)
     elif isinstance(elem, int):
         return torch.tensor(batch)
+    ## I added 30-5-24
+    elif isinstance(elem, Camera):
+        return [camera._data for camera in batch]  # Convert Camera objects to their data attribute
+        return batch
+    ##
     elif isinstance(elem, string_classes):
         return batch
     elif isinstance(elem, collections.abc.Mapping):

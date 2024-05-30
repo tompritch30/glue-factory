@@ -40,6 +40,12 @@ from .utils.tools import (
     set_seed,
 )
 
+
+## Used for NON homography retraining
+from gluefactory.datasets.forest_images_dataset import ForestImagesDataset
+from torchvision import transforms as T
+
+
 import logging
 
 # Configure logging
@@ -268,50 +274,153 @@ def training(rank, conf, output_dir, args):
         device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Using device {device}")
 
+    ##### megadepthj part 2
+    # Revert back to the original code for dataset loading
+
+    from torch.utils.data.dataloader import default_collate
+    from gluefactory.geometry.wrappers import Camera
+
+    def custom_collate_fn(batch):
+        elem = batch[0]
+        if isinstance(elem, dict):
+            print("train dict")
+            return {key: custom_collate_fn([d[key] for d in batch]) for key in elem}
+        elif isinstance(elem, Camera):
+            print("trai n camera")
+            return batch
+        else:
+            print("train else ")
+            return default_collate(batch)
+
+    data_conf = conf.data
+    dataset_class = get_dataset(data_conf.name)
+    dataset = dataset_class(data_conf)
+    # dataset = get_dataset(data_conf.name)(data_conf)
+
+    # If you need to apply transforms
+    # Ensure transforms are set if needed
+    if 'transform' in data_conf and data_conf.transform is not None:
+        transform = T.Compose([T.ToTensor()])  # Example transform
+        dataset.transform = transform
+
+    # train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+    # val_loader = dataset.get_data_loader("val", distributed=args.distributed)
+
+    # Use custom collate function
+    val_dataset = dataset
+    train_loader = DataLoader(dataset, batch_size=conf.data.batch_size, shuffle=True, num_workers=conf.data.num_workers,
+                              collate_fn=custom_collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=conf.data.batch_size, shuffle=False,
+                            num_workers=conf.data.num_workers, collate_fn=custom_collate_fn)
+
+    if args.overfit:
+        logger.info("Data in overfitting mode")
+        assert not args.distributed
+        train_loader = dataset.get_overfit_loader("train")
+        val_loader = dataset.get_overfit_loader("val")
+    else:
+        train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+        val_loader = dataset.get_data_loader("val", distributed=args.distributed)
+
+    if rank == 0:
+        logger.info(f"Training loader has {len(train_loader)} batches")
+        logger.info(f"Validation loader has {len(val_loader)} batches")
+
+    #########
+
+    ######### original code
+    # dataset = get_dataset(data_conf.name)(data_conf)
+    #
+    # # Optionally load a different validation dataset than the training one
+    # val_data_conf = conf.get("data_val", None)
+    # if val_data_conf is None:
+    #     val_dataset = dataset
+    # else:
+    #     val_dataset = get_dataset(val_data_conf.name)(val_data_conf)
+    #
+    # # @TODO: add test data loader
+    #
+    # if args.overfit:
+    #     # we train and eval with the same single training batch
+    #     logger.info("Data in overfitting mode")
+    #     assert not args.distributed
+    #     train_loader = dataset.get_overfit_loader("train")
+    #     val_loader = val_dataset.get_overfit_loader("val")
+    # else:
+    #     train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+    #     val_loader = val_dataset.get_data_loader("val")
+    # if rank == 0:
+    #     logger.info(f"Training loader has {len(train_loader)} batches")
+    #     logger.info(f"Validation loader has {len(val_loader)} batches")
+
+    ####### iNITIAL megaepth go #####
+    # # Initialize dataset
+    # transform = None  # Define your transforms if any
+    # ## NEED TO MOVE THE DEPTH AND CHANGE THE PATH!!
+    # transform = T.Compose([T.ToTensor()])  # Using torchvision transforms to convert images to tensors
+    #
+    # dataset = ForestImagesDataset(
+    #     root_dir='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub',
+    #     pose_file='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/pose_left.txt',
+    #     depth_dir='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/depth_left',
+    #     transform=transform
+    # )
+    # val_dataset = ForestImagesDataset(
+    #     root_dir='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub',
+    #     pose_file='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/pose_left.txt',
+    #     depth_dir='C:/Users/thoma/OneDrive/2023 Masters/Project/ProjectCode/external/glue-factory/gluefactory/datasets/forest_images/sub/depth_left',
+    #     transform=transform
+    # )
+    #
+    # train_loader = DataLoader(dataset, batch_size=conf.data.batch_size, shuffle=True, num_workers=conf.data.num_workers)
+    # val_loader = DataLoader(val_dataset, batch_size=conf.data.batch_size, shuffle=False,
+    #                         num_workers=conf.data.num_workers)
 
     # dataset = get_dataset(data_conf.name)(data_conf)
 
     # 28-05-24 -- to address problem for "data_conf is a configuration object (specifically, a DictConfig from OmegaConf) rather than a simple string or path"
 
-    root_path = data_conf.data_dir  # Ensure this is the correct key for the directory
-    print("Initializing dataset with root path:", root_path)
-    # dataset = get_dataset(data_conf.name)(root=root_xdata_path)
-    # dataset = get_dataset(data_conf.name)(root=root_path)
-
-    dataset_class = get_dataset(data_conf.name)
-    dataset = dataset_class(root=root_path)  # Using the modified constructor
-
-    # Optionally load a different validation dataset than the training one
-    val_data_conf = conf.get("data_val", None)
-    if val_data_conf is None:
-        val_dataset = dataset
-    else:
-        val_dataset = get_dataset(val_data_conf.name)(val_data_conf)
-
-    # @TODO: add test data loader
-
-    if args.overfit:
-        # we train and eval with the same single training batch
-        logger.info("Data in overfitting mode")
-        assert not args.distributed
-
-        train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
-                                  num_workers=data_conf.num_workers)
-        val_loader = DataLoader(val_dataset, batch_size=data_conf.batch_size, shuffle=False,
-                                num_workers=data_conf.num_workers)
-
-        # train_loader = dataset.get_overfit_loader("train")
-        # val_loader = val_dataset.get_overfit_loader("val")
-    else:
-        train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
-                                  num_workers=data_conf.num_workers)
-        val_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=False,
-                                num_workers=data_conf.num_workers)
-        # train_loader = dataset.get_data_loader("train", distributed=args.distributed)
-        # val_loader = val_dataset.get_data_loader("val")
-    if rank == 0:
-        logger.info(f"Training loader has {len(train_loader)} batches")
-        logger.info(f"Validation loader has {len(val_loader)} batches")
+    # root_path = data_conf.data_dir  # Ensure this is the correct key for the directory
+    # print("Initializing dataset with root path:", root_path)
+    # # dataset = get_dataset(data_conf.name)(root=root_xdata_path)
+    # # dataset = get_dataset(data_conf.name)(root=root_path)
+    #
+    # dataset_class = get_dataset(data_conf.name)
+    # dataset = dataset_class(root=root_path)  # Using the modified constructor
+    #
+    # # Optionally load a different validation dataset than the training one
+    # val_data_conf = conf.get("data_val", None)
+    # if val_data_conf is None:
+    #     val_dataset = dataset
+    # else:
+    #     val_dataset = get_dataset(val_data_conf.name)(val_data_conf)
+    #
+    # # @TODO: add test data loader
+    #
+    # if args.overfit:
+    #     # we train and eval with the same single training batch
+    #     logger.info("Data in overfitting mode")
+    #     assert not args.distributed
+    #
+    #     train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
+    #                               num_workers=data_conf.num_workers)
+    #     val_loader = DataLoader(val_dataset, batch_size=data_conf.batch_size, shuffle=False,
+    #                             num_workers=data_conf.num_workers)
+    #
+    #     # train_loader = dataset.get_overfit_loader("train")
+    #     # val_loader = val_dataset.get_overfit_loader("val")
+    # else:
+    #     train_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=True,
+    #                               num_workers=data_conf.num_workers)
+    #     val_loader = DataLoader(dataset, batch_size=data_conf.batch_size, shuffle=False,
+    #                             num_workers=data_conf.num_workers)
+    #     # train_loader = dataset.get_data_loader("train", distributed=args.distributed)
+    #     # val_loader = val_dataset.get_data_loader("val")
+    #
+    #
+    # if rank == 0:
+    #     logger.info(f"Training loader has {len(train_loader)} batches")
+    #     logger.info(f"Validation loader has {len(val_loader)} batches")
 
     # interrupts are caught and delayed for graceful termination
     def sigint_handler(signal, frame):

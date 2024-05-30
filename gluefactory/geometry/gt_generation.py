@@ -23,8 +23,11 @@ def gt_matches_from_pose_depth(
         m0 = -torch.ones_like(kp0[:, :, 0]).long()
         m1 = -torch.ones_like(kp1[:, :, 0]).long()
         return assignment, m0, m1
+    print("what is data in gt_gen", type(data))
+
     camera0, camera1 = data["view0"]["camera"], data["view1"]["camera"]
     T_0to1, T_1to0 = data["T_0to1"], data["T_1to0"]
+    print("type of camera in gt_generation", type(camera0))
 
     depth0 = data["view0"].get("depth")
     depth1 = data["view1"].get("depth")
@@ -37,9 +40,27 @@ def gt_matches_from_pose_depth(
         d0, valid0 = sample_depth(kp0, depth0)
         d1, valid1 = sample_depth(kp1, depth1)
 
+    # TEMP FIX
+    from gluefactory.geometry.wrappers import Camera
+
+    camera_intrinsics = torch.tensor([
+        [320.0, 0, 320.0],
+        [0, 320.0, 240.0],
+        [0, 0, 1.0]
+    ], dtype=torch.float32)
+
+    # Ensure it's in the right shape
+    camera_intrinsics = camera_intrinsics.unsqueeze(0)
+    camera0 = Camera.from_calibration_matrix(camera_intrinsics)
+    camera1 = Camera.from_calibration_matrix(camera_intrinsics)
+    # print("HERE IS CAMERA AS LIST :( ", camera0)
+    print("t tranform types", type(T_0to1), type(T_1to0))
+
     kp0_1, visible0 = project(
         kp0, d0, depth1, camera0, camera1, T_0to1, valid0, ccth=cc_th
     )
+    print(f"kp0_1.shape: {kp0_1.shape}, visible0.shape: {visible0.shape}")
+
     kp1_0, visible1 = project(
         kp1, d1, depth0, camera1, camera0, T_1to0, valid1, ccth=cc_th
     )
