@@ -111,14 +111,22 @@ def project(
     print("camera_j type:", type(camera_j))
     print("T_itoj type:", type(T_itoj))
 
+
+
     kpi_3d_i = camera_i.image2cam(kpi)
+    # new
+    kpi_3d_i = kpi_3d_i.squeeze()
+
     kpi_3d_i = kpi_3d_i * di[..., None]
     kpi_3d_j = T_itoj.transform(kpi_3d_i)
     kpi_j, validj = camera_j.cam2image(kpi_3d_j)
     # di_j = kpi_3d_j[..., -1]
     validi = validi & validj
 
+
+
     if depthj is None or ccth is None:
+        print("depthj is None or ccth is None")
         return kpi_j, validi & validj
 
     # circle consistency

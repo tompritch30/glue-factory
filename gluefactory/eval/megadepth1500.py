@@ -103,6 +103,7 @@ class MegaDepth1500Pipeline(EvalPipeline):
         cache_loader = CacheLoader({"path": str(pred_file), "collate": None}).eval()
         for i, data in enumerate(tqdm(loader)):
             pred = cache_loader(data)
+            print("in megadeoth1500 runeval", pred)
             # add custom evaluations here
             results_i = eval_matches_epipolar(data, pred)
             for th in test_thresholds:

@@ -61,42 +61,100 @@ class NLLLoss(nn.Module):
 
     def nll_loss(self, log_assignment, data):
         m, n = data["gt_matches0"].size(-1), data["gt_matches1"].size(-1)
-        positive = (data["gt_assignment"].float())
-        print(f"positive.shape BEFORE: {positive.shape}")
-        # positive.squeeze(1)
+        positive = data["gt_assignment"].float()
         neg0 = (data["gt_matches0"] == -1).float()
         neg1 = (data["gt_matches1"] == -1).float()
 
-        # positive.squeeze(0)
-        if positive.dim() > 3:
-            print("positive squeeze!!")
-            positive = positive.squeeze(1)
-
         print("m, n", m, n)
-        # m, n = positive.shape[1:3]
         print(f"log_assignment.shape: {log_assignment.shape}")
         print(f"positive.shape: {positive.shape}")
         print(f"negative0.shape: {neg0.shape}")
         print(f"negative1.shape: {neg1.shape}")
 
         weights = torch.zeros_like(log_assignment)
-        ### Ensure positive has compatible shape before assignment
-        if positive.shape[1] != m or positive.shape[2] != n:
-            print("Adjusting positive shape for compatibility")
-            positive = positive[:, :m, :n]
+
+        # Manually adjust the shape of positive to match (batch_size, m, n)
+        batch_size = positive.shape[0]
+        new_positive = torch.zeros((batch_size, m, n), device=positive.device)
+
+        # Copy values from positive to new_positive
+        for i in range(batch_size):
+            new_positive[i, :positive.shape[2], :positive.shape[3]] = positive[i, 0, :, :]
+
+        positive = new_positive
+        print(f"Adjusted positive.shape: {positive.shape}")
 
         weights[:, :m, :n] = positive
 
-        # Ensure neg0 and neg1 have compatible shapes before assignment
-        if neg0.shape[-1] < weights.shape[-1]:
-            print("neg0.shape[-1] < weights.shape[-1]")
-            neg0 = neg0.expand(weights.shape[:-1])
-        if neg1.shape[-1] < weights.shape[-1]:
-            print("neg1.shape[-1] < weights.shape[-1]")
-            neg1 = neg1.expand(weights.shape[:-1])
+        # Manually adjust the shape of neg0 and neg1 to match (batch_size, m, 1) and (batch_size, 1, n)
+        new_neg0 = torch.zeros((batch_size, m, 1), device=neg0.device)
+        new_neg1 = torch.zeros((batch_size, 1, n), device=neg1.device)
 
-        weights[:, :m, -1] = neg0
-        weights[:, -1, :n] = neg1
+        # Copy values from neg0 and neg1 to new_neg0 and new_neg1
+        for i in range(batch_size):
+            new_neg0[i, :, 0] = neg0[i, 0, :]
+            new_neg1[i, 0, :] = neg1[i, 0, :]
+
+        neg0 = new_neg0
+        neg1 = new_neg1
+
+        print(f"Adjusted neg0.shape: {neg0.shape}")
+        print(f"Adjusted neg1.shape: {neg1.shape}")
+
+        weights[:, :m, -1] = neg0.squeeze(-1)
+        weights[:, -1, :n] = neg1.squeeze(1)
         print(f"weights.shape after assignment: {weights.shape}")
 
         return weights
+
+    # def nll_loss(self, log_assignment, data):
+    #     m, n = data["gt_matches0"].size(-1), data["gt_matches1"].size(-1)
+    #     positive = (data["gt_assignment"].float())
+    #     print(f"positive.shape BEFORE: {positive.shape}")
+    #     # positive.squeeze(1)
+    #     neg0 = (data["gt_matches0"] == -1).float()
+    #     neg1 = (data["gt_matches1"] == -1).float()
+    #
+    #     # positive.squeeze(0)
+    #     # Adjust the shape of positive to match the required shape
+    #     if positive.dim() > 3:
+    #         positive = positive.squeeze(1)  # This removes the second dimension if it's size 1
+    #         print("positive squeeze!!")
+    #         if positive.dim() > 3:  # If there's still an extra dimension, remove it
+    #             print("positive squeeze!!")
+    #             positive = positive.squeeze(1)
+    #     # if positive.dim() > 3:
+    #     #
+    #     #     positive = positive.squeeze(3)
+    #
+    #     print("m, n", m, n)
+    #     # m, n = positive.shape[1:3]
+    #     print(f"log_assignment.shape: {log_assignment.shape}")
+    #     print(f"positive.shape: {positive.shape}")
+    #     print(f"negative0.shape: {neg0.shape}")
+    #     print(f"negative1.shape: {neg1.shape}")
+    #
+    #     weights = torch.zeros_like(log_assignment)
+    #     ### Ensure positive has compatible shape before assignment
+    #     if positive.shape[1] != m or positive.shape[2] != n:
+    #         print("Adjusting positive shape for compatibility")
+    #         positive = positive[:, :m, :n]
+    #
+    #     print(f"positive.shape: {positive.shape} ")
+    #     print("the weights: " ,weights[:, :m, :n], "\n\n\n\n\n")
+    #     print("here is positive", positive, "\n\n\n\n\n ---------------------------")
+    #     weights[:, :m, :n] = positive
+    #
+    #     # Ensure neg0 and neg1 have compatible shapes before assignment
+    #     if neg0.shape[-1] < weights.shape[-1]:
+    #         print("neg0.shape[-1] < weights.shape[-1]")
+    #         neg0 = neg0.expand(weights.shape[:-1])
+    #     if neg1.shape[-1] < weights.shape[-1]:
+    #         print("neg1.shape[-1] < weights.shape[-1]")
+    #         neg1 = neg1.expand(weights.shape[:-1])
+    #
+    #     weights[:, :m, -1] = neg0
+    #     weights[:, -1, :n] = neg1
+    #     print(f"weights.shape after assignment: {weights.shape}")
+    #
+    #     return weights

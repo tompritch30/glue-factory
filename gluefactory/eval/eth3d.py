@@ -24,6 +24,9 @@ def eval_dataset(loader, pred_file, suffix=""):
 
         if suffix == "":
             scores = pred["matching_scores0"].numpy()
+            print(f"scores.shape eval dataset: {scores.shape}")
+
+
             sort_indices = np.argsort(scores)[::-1]
             gt_matches = pred["gt_matches0"].numpy()[sort_indices]
             pred_matches = pred["matches0"].numpy()[sort_indices]

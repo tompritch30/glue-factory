@@ -34,12 +34,15 @@ def gt_matches_from_pose_depth(
     if "depth_keypoints0" in kw and "depth_keypoints1" in kw:
         d0, valid0 = kw["depth_keypoints0"], kw["valid_depth_keypoints0"]
         d1, valid1 = kw["depth_keypoints1"], kw["valid_depth_keypoints1"]
+        # print("if statement d0, d1", d0, d1, sep="\n")
     else:
         assert depth0 is not None
         assert depth1 is not None
         d0, valid0 = sample_depth(kp0, depth0)
         d1, valid1 = sample_depth(kp1, depth1)
+        # print("else statement d0, d1", d0, d1, sep="\n")
 
+    # print("\n\n depth values for 0 and 1", depth0, depth1, sep="\n")
     # TEMP FIX
     from gluefactory.geometry.wrappers import Camera
 
@@ -64,6 +67,7 @@ def gt_matches_from_pose_depth(
     kp1_0, visible1 = project(
         kp1, d1, depth0, camera1, camera0, T_1to0, valid1, ccth=cc_th
     )
+    # print("kp0_1, kp1_0", kp0_1.shape(), kp1_0.shape())
     mask_visible = visible0.unsqueeze(-1) & visible1.unsqueeze(-2)
 
     # build a distance matrix of size [... x M x N]
