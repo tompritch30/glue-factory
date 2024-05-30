@@ -9,3 +9,5 @@
 __pycache__
 gluefactory/datasets/forest_images
 /tests/image_right
+*.png
+*.sh
