@@ -65,9 +65,28 @@ class NLLLoss(nn.Module):
         neg0 = (data["gt_matches0"] == -1).float()
         neg1 = (data["gt_matches1"] == -1).float()
 
+        # positive.squeeze(0)
+
+        m, n = positive.shape[1:3]
+        print(f"log_assignment.shape: {log_assignment.shape}")
+        print(f"positive.shape: {positive.shape}")
+        print(f"negative0.shape: {neg0.shape}")
+        print(f"negative1.shape: {neg1.shape}")
+
+
         weights = torch.zeros_like(log_assignment)
         weights[:, :m, :n] = positive
 
+        # Ensure neg0 and neg1 have compatible shapes before assignment
+        if neg0.shape[-1] < weights.shape[-1]:
+            print("neg0.shape[-1] < weights.shape[-1]")
+            neg0 = neg0.expand(weights.shape[:-1])
+        if neg1.shape[-1] < weights.shape[-1]:
+            print("neg1.shape[-1] < weights.shape[-1]")
+            neg1 = neg1.expand(weights.shape[:-1])
+
         weights[:, :m, -1] = neg0
         weights[:, -1, :n] = neg1
+        print(f"weights.shape after assignment: {weights.shape}")
+
         return weights
