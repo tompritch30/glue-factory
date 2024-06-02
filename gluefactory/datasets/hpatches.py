@@ -55,7 +55,8 @@ class HPatches(BaseDataset, torch.utils.data.Dataset):
         "v_talent",
     )
     url = "http://icvl.ee.ic.ac.uk/vbalnt/hpatches/hpatches-sequences-release.tar.gz"
-
+    # url = "http://icvl.ee.ic.ac.uk/vbalnt/hpatches/"
+    
     def _init(self, conf):
         assert conf.batch_size == 1
         self.preprocessor = ImagePreprocessor(conf.preprocessing)

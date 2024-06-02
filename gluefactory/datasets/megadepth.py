@@ -80,24 +80,133 @@ class MegaDepth(BaseDataset):
             self.download()
 
     def download(self):
+        import os
+        import shutil
+        import zipfile
+        import torch    
         data_dir = DATA_PATH / self.conf.data_dir
         tmp_dir = data_dir.parent / "megadepth_tmp"
-        if tmp_dir.exists():  # The previous download failed.
+        if tmp_dir.exists():
             shutil.rmtree(tmp_dir)
         tmp_dir.mkdir(exist_ok=True, parents=True)
         url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
-        for tar_name, out_name in (
-            ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
-            ("depth_undistorted.tar.gz", self.conf.depth_subpath),
-            ("scene_info.tar.gz", self.conf.info_dir),
-        ):
-            tar_path = tmp_dir / tar_name
-            torch.hub.download_url_to_file(url_base + tar_name, tar_path)
-            with tarfile.open(tar_path) as tar:
-                tar.extractall(path=tmp_dir)
-            tar_path.unlink()
-            shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
-        shutil.move(tmp_dir, data_dir)
+        
+        tar_name = "megadepth1500.zip"
+        out_name = self.conf.image_subpath  # Adjust this to the correct output directory for the extracted data
+        
+        tar_path = tmp_dir / tar_name
+        torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+        
+        # Since it's a zip file, use the appropriate library to extract it
+        with zipfile.ZipFile(tar_path, 'r') as zip_ref:
+            zip_ref.extractall(tmp_dir)
+        
+        tar_path.unlink()  # Remove the zip file after extraction
+
+        # List all the contents of the extraction path
+        print("Directory structure post-extraction:")
+        for root, dirs, files in os.walk(tmp_dir):
+            print(root)
+            for d in dirs:
+                print(f" - {d}/")
+            for f in files:
+                print(f" - {f}")
+
+        # Move the extracted directories to their final locations
+        if (tmp_dir / 'Undistorted_SfM').exists():
+            shutil.move(str(tmp_dir / 'Undistorted_SfM'), str(data_dir / self.conf.image_subpath))
+
+        if (tmp_dir / 'depth_undistorted').exists():
+            shutil.move(str(tmp_dir / 'depth_undistorted'), str(data_dir / self.conf.depth_subpath))
+        
+        if (tmp_dir / 'scene_info').exists():
+            shutil.move(str(tmp_dir / 'scene_info'), str(data_dir / self.conf.info_dir))
+
+        # Clean up the temporary directory if it's empty
+        if not any(tmp_dir.iterdir()):
+            shutil.rmtree(tmp_dir)
+
+    # def download(self):
+    #     data_dir = DATA_PATH / self.conf.data_dir
+    #     tmp_dir = data_dir.parent / "megadepth_tmp"
+    #     if tmp_dir.exists():  # The previous download failed.
+    #         shutil.rmtree(tmp_dir)
+    #     tmp_dir.mkdir(exist_ok=True, parents=True)
+    #     url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
+        
+    #     # Specific file for the smaller dataset
+    #     tar_name = "megadepth1500.zip"
+    #     out_name = self.conf.image_subpath  # Adjust this to the correct output directory for the extracted data
+        
+    #     tar_path = tmp_dir / tar_name
+    #     torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+        
+    #     # Since it's a zip file, use the appropriate library to extract it
+    #     import zipfile
+    #     with zipfile.ZipFile(tar_path, 'r') as zip_ref:
+    #         zip_ref.extractall(tmp_dir / out_name)
+        
+    #     tar_path.unlink()  # Remove the zip file after extraction
+    #     # Move the extracted directories to their final locations
+    #     if (tmp_dir / 'Undistorted_SfM').exists():
+    #         print('Undistorted_SfM')
+    #         shutil.move(str(tmp_dir / 'Undistorted_SfM'), str(data_dir / self.conf.image_subpath))
+
+    #     # Assuming other potential directories are named as expected
+    #     if (tmp_dir / 'depth_undistorted').exists():
+    #         print('depth_undistorted')
+    #         shutil.move(str(tmp_dir / 'depth_undistorted'), str(data_dir / self.conf.depth_subpath))
+        
+    #     if (tmp_dir / 'scene_info').exists():
+    #         print('scene_info')
+    #         shutil.move(str(tmp_dir / 'scene_info'), str(data_dir / self.conf.info_dir))
+
+    #     # Clean up the temporary directory if it's empty
+    #     if not any(tmp_dir.iterdir()):
+    #         shutil.rmtree(tmp_dir)
+        
+        # for path in tmp_dir.iterdir():
+        #     print(f"Contained directory or file: {path}")
+        
+        # shutil.move(tmp_dir / out_name, data_dir / out_name)
+
+
+        # file_limit = 1  # Only download the first file for testing purposes
+        # # Iterate over the dataset files you want to potentially download
+        # for index, (tar_name, out_name) in enumerate([
+        #     ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
+        #     ("depth_undistorted.tar.gz", self.conf.depth_subpath),
+        #     ("scene_info.tar.gz", self.conf.info_dir),
+        # ]):
+        #     if index >= file_limit:
+        #         break  # Stop downloading after reaching the file limit
+        #     tar_path = tmp_dir / tar_name
+        #     torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+            
+        #     # Extract the tar file and clean up
+        #     with tarfile.open(tar_path) as tar:
+        #         tar.extractall(path=tmp_dir)
+        #     tar_path.unlink()
+            
+        #     # Move extracted contents to their respective output directories
+        #     shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
+        
+        # # Move the temporary directory with all its contents to the final data directory
+        # shutil.move(tmp_dir, data_dir)
+
+        ##### Original Code #####        
+        # for tar_name, out_name in (
+        #     ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
+        #     ("depth_undistorted.tar.gz", self.conf.depth_subpath),
+        #     ("scene_info.tar.gz", self.conf.info_dir),
+        # ):
+        #     tar_path = tmp_dir / tar_name
+        #     torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+        #     with tarfile.open(tar_path) as tar:
+        #         tar.extractall(path=tmp_dir)
+        #     tar_path.unlink()
+        #     shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
+        # shutil.move(tmp_dir, data_dir)
 
     def get_dataset(self, split):
         assert self.conf.views in [1, 2, 3]
@@ -158,95 +267,121 @@ class _PairDataset(torch.utils.data.Dataset):
             assert len(self.items) > 0
 
     def sample_new_items(self, seed):
+        # Logging the seed use
         logger.info("Sampling new %s data with seed %d.", self.split, seed)
         self.items = []
-        split = self.split
-        num_per_scene = self.conf[self.split + "_num_per_scene"]
-        if isinstance(num_per_scene, Iterable):
-            num_pos, num_neg = num_per_scene
-        else:
-            num_pos = num_per_scene
-            num_neg = None
-        if split != "train" and self.conf[split + "_pairs"] is not None:
-            # Fixed validation or test pairs
-            assert num_pos is None
-            assert num_neg is None
-            assert self.conf.views == 2
-            pairs_path = scene_lists_path / self.conf[split + "_pairs"]
-            for line in pairs_path.read_text().rstrip("\n").split("\n"):
-                im0, im1 = line.split(" ")
-                scene = im0.split("/")[0]
-                assert im1.split("/")[0] == scene
-                im0, im1 = [self.conf.image_subpath + im for im in [im0, im1]]
-                assert im0 in self.images[scene]
-                assert im1 in self.images[scene]
-                idx0 = np.where(self.images[scene] == im0)[0][0]
-                idx1 = np.where(self.images[scene] == im1)[0][0]
-                self.items.append((scene, idx0, idx1, 1.0))
-        elif self.conf.views == 1:
-            for scene in self.scenes:
-                if scene not in self.images:
-                    continue
-                valid = (self.images[scene] != None) | (  # noqa: E711
-                    self.depths[scene] != None  # noqa: E711
-                )
-                ids = np.where(valid)[0]
-                if num_pos and len(ids) > num_pos:
-                    ids = np.random.RandomState(seed).choice(
-                        ids, num_pos, replace=False
-                    )
-                ids = [(scene, i) for i in ids]
-                self.items.extend(ids)
-        else:
-            for scene in self.scenes:
-                path = self.info_dir / (scene + ".npz")
-                assert path.exists(), path
-                info = np.load(str(path), allow_pickle=True)
-                valid = (self.images[scene] != None) & (  # noqa: E711
-                    self.depths[scene] != None  # noqa: E711
-                )
-                ind = np.where(valid)[0]
-                mat = info["overlap_matrix"][valid][:, valid]
 
-                if num_pos is not None:
-                    # Sample a subset of pairs, binned by overlap.
-                    num_bins = self.conf.num_overlap_bins
-                    assert num_bins > 0
-                    bin_width = (
-                        self.conf.max_overlap - self.conf.min_overlap
-                    ) / num_bins
-                    num_per_bin = num_pos // num_bins
-                    pairs_all = []
-                    for k in range(num_bins):
-                        bin_min = self.conf.min_overlap + k * bin_width
-                        bin_max = bin_min + bin_width
-                        pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                        pairs_bin = np.stack(np.where(pairs_bin), -1)
-                        pairs_all.append(pairs_bin)
-                    # Skip bins with too few samples
-                    has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                    num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                    pairs = []
-                    for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                        if keep:
-                            pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                    pairs = np.concatenate(pairs, 0)
-                else:
-                    pairs = (mat > self.conf.min_overlap) & (
-                        mat <= self.conf.max_overlap
-                    )
-                    pairs = np.stack(np.where(pairs), -1)
+        # Iterate over each scene to sample items
+        for scene in self.scenes:
+            scene_images = self.images[scene]
+            num_images = len(scene_images)
 
-                pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
-                if num_neg is not None:
-                    neg_pairs = np.stack(np.where(mat <= 0.0), -1)
-                    neg_pairs = sample_n(neg_pairs, num_neg, seed)
-                    pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
-                self.items.extend(pairs)
-        if self.conf.views == 2 and self.conf.sort_by_overlap:
-            self.items.sort(key=lambda i: i[-1], reverse=True)
-        else:
-            np.random.RandomState(seed).shuffle(self.items)
+            # Calculate the number of samples to take from this scene
+            sample_size = min(num_images, self.conf['train_num_per_scene'])
+            sampled_indices = np.random.RandomState(seed).choice(num_images, sample_size, replace=False)
+
+            # Append sampled items from the scene
+            for idx in sampled_indices:
+                self.items.append((scene, idx))
+
+        # Dynamically adjust the split between training and validation
+        if self.split == 'train':
+            self.items = self.items[:int(0.8 * len(self.items))]
+        elif self.split == 'val':
+            self.items = self.items[int(0.8 * len(self.items)):]
+
+    ### Original code
+    # def sample_new_items(self, seed):
+    #     logger.info("Sampling new %s data with seed %d.", self.split, seed)
+    #     self.items = []
+    #     split = self.split
+        
+    #     num_per_scene = self.conf[self.split + "_num_per_scene"]
+    #     if isinstance(num_per_scene, Iterable):
+    #         num_pos, num_neg = num_per_scene
+    #     else:
+    #         num_pos = num_per_scene
+    #         num_neg = None
+    #     if split != "train" and self.conf[split + "_pairs"] is not None:
+    #         # Fixed validation or test pairs
+    #         assert num_pos is None
+    #         assert num_neg is None
+    #         assert self.conf.views == 2
+    #         pairs_path = scene_lists_path / self.conf[split + "_pairs"]
+    #         for line in pairs_path.read_text().rstrip("\n").split("\n"):
+    #             im0, im1 = line.split(" ")
+    #             scene = im0.split("/")[0]
+    #             assert im1.split("/")[0] == scene
+    #             im0, im1 = [self.conf.image_subpath + im for im in [im0, im1]]
+    #             assert im0 in self.images[scene]
+    #             assert im1 in self.images[scene]
+    #             idx0 = np.where(self.images[scene] == im0)[0][0]
+    #             idx1 = np.where(self.images[scene] == im1)[0][0]
+    #             self.items.append((scene, idx0, idx1, 1.0))
+    #     elif self.conf.views == 1:
+    #         for scene in self.scenes:
+    #             if scene not in self.images:
+    #                 continue
+    #             valid = (self.images[scene] != None) | (  # noqa: E711
+    #                 self.depths[scene] != None  # noqa: E711
+    #             )
+    #             ids = np.where(valid)[0]
+    #             if num_pos and len(ids) > num_pos:
+    #                 ids = np.random.RandomState(seed).choice(
+    #                     ids, num_pos, replace=False
+    #                 )
+    #             ids = [(scene, i) for i in ids]
+    #             self.items.extend(ids)
+    #     else:
+    #         for scene in self.scenes:
+    #             path = self.info_dir / (scene + ".npz")
+    #             assert path.exists(), path
+    #             info = np.load(str(path), allow_pickle=True)
+    #             valid = (self.images[scene] != None) & (  # noqa: E711
+    #                 self.depths[scene] != None  # noqa: E711
+    #             )
+    #             ind = np.where(valid)[0]
+    #             mat = info["overlap_matrix"][valid][:, valid]
+
+    #             if num_pos is not None:
+    #                 # Sample a subset of pairs, binned by overlap.
+    #                 num_bins = self.conf.num_overlap_bins
+    #                 assert num_bins > 0
+    #                 bin_width = (
+    #                     self.conf.max_overlap - self.conf.min_overlap
+    #                 ) / num_bins
+    #                 num_per_bin = num_pos // num_bins
+    #                 pairs_all = []
+    #                 for k in range(num_bins):
+    #                     bin_min = self.conf.min_overlap + k * bin_width
+    #                     bin_max = bin_min + bin_width
+    #                     pairs_bin = (mat > bin_min) & (mat <= bin_max)
+    #                     pairs_bin = np.stack(np.where(pairs_bin), -1)
+    #                     pairs_all.append(pairs_bin)
+    #                 # Skip bins with too few samples
+    #                 has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+    #                 num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+    #                 pairs = []
+    #                 for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+    #                     if keep:
+    #                         pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+    #                 pairs = np.concatenate(pairs, 0)
+    #             else:
+    #                 pairs = (mat > self.conf.min_overlap) & (
+    #                     mat <= self.conf.max_overlap
+    #                 )
+    #                 pairs = np.stack(np.where(pairs), -1)
+
+    #             pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
+    #             if num_neg is not None:
+    #                 neg_pairs = np.stack(np.where(mat <= 0.0), -1)
+    #                 neg_pairs = sample_n(neg_pairs, num_neg, seed)
+    #                 pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
+    #             self.items.extend(pairs)
+    #     if self.conf.views == 2 and self.conf.sort_by_overlap:
+    #         self.items.sort(key=lambda i: i[-1], reverse=True)
+    #     else:
+    #         np.random.RandomState(seed).shuffle(self.items)
 
     def _read_view(self, scene, idx):
         path = self.root / self.images[scene][idx]

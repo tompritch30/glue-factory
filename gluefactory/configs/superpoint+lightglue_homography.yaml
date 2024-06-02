@@ -30,7 +30,7 @@ model:
         checkpointed: true
 train:
     seed: 0
-    epochs: 40
+    epochs: 5 # 40
     log_every_iter: 100
     eval_every_iter: 500
     lr: 1e-4

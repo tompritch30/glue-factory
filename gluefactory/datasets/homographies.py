@@ -123,9 +123,44 @@ class HomographyDataset(BaseDataset):
 
         if conf.shuffle_seed is not None:
             np.random.RandomState(conf.shuffle_seed).shuffle(images)
-        train_images = images[: conf.train_size]
-        val_images = images[conf.train_size : conf.train_size + conf.val_size]
+
+        # Ensure images are sorted for consistent behavior
+        images = sorted(images)
+        logger.info(f"Total images found: {len(images)}")
+
+        # Dynamically determine the split based on an 80-20 split
+        train_size = int(len(images) * 0.8)  # 80% of images go to training
+
+        # Split images into training and validation sets
+        train_images = images[:train_size]
+        val_images = images[train_size:]
         self.images = {"train": train_images, "val": val_images}
+
+        logger.info(f"Loaded {len(train_images)} training and {len(val_images)} validation images.")
+        
+        # train_images = images[: conf.train_size]
+        # val_images = images[conf.train_size : conf.train_size + conf.val_size]
+        # self.images = {"train": train_images, "val": val_images}
+
+    # def download_revisitop1m(self):
+    #     data_dir = DATA_PATH / self.conf.data_dir
+    #     tmp_dir = data_dir.parent / "revisitop1m_tmp"
+    #     if tmp_dir.exists():  # The previous download failed.
+    #         shutil.rmtree(tmp_dir)
+    #     image_dir = tmp_dir / self.conf.image_dir
+    #     image_dir.mkdir(exist_ok=True, parents=True)
+    #     num_files = 100
+    #     url_base = "http://ptak.felk.cvut.cz/revisitop/revisitop1m/"
+    #     list_name = "revisitop1m.txt"
+    #     torch.hub.download_url_to_file(url_base + list_name, tmp_dir / list_name)
+    #     for n in tqdm(range(num_files), position=1):
+    #         tar_name = "revisitop1m.{}.tar.gz".format(n + 1)
+    #         tar_path = image_dir / tar_name
+    #         torch.hub.download_url_to_file(url_base + "jpg/" + tar_name, tar_path)
+    #         with tarfile.open(tar_path) as tar:
+    #             tar.extractall(path=image_dir)
+    #         tar_path.unlink()
+    #     shutil.move(tmp_dir, data_dir)
 
     def download_revisitop1m(self):
         data_dir = DATA_PATH / self.conf.data_dir
@@ -134,18 +169,19 @@ class HomographyDataset(BaseDataset):
             shutil.rmtree(tmp_dir)
         image_dir = tmp_dir / self.conf.image_dir
         image_dir.mkdir(exist_ok=True, parents=True)
-        num_files = 100
+        num_files = 1  # Limit the number of tar files to download
         url_base = "http://ptak.felk.cvut.cz/revisitop/revisitop1m/"
         list_name = "revisitop1m.txt"
         torch.hub.download_url_to_file(url_base + list_name, tmp_dir / list_name)
         for n in tqdm(range(num_files), position=1):
-            tar_name = "revisitop1m.{}.tar.gz".format(n + 1)
+            tar_name = f"revisitop1m.{n + 1}.tar.gz"
             tar_path = image_dir / tar_name
             torch.hub.download_url_to_file(url_base + "jpg/" + tar_name, tar_path)
             with tarfile.open(tar_path) as tar:
                 tar.extractall(path=image_dir)
             tar_path.unlink()
         shutil.move(tmp_dir, data_dir)
+
 
     def get_dataset(self, split):
         return _Dataset(self.conf, self.images[split], split)

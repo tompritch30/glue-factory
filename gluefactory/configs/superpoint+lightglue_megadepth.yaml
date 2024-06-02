@@ -42,7 +42,7 @@ model:
     allow_no_extract: True
 train:
     seed: 0
-    epochs: 50
+    epochs: 5 # 50
     log_every_iter: 100
     eval_every_iter: 1000
     lr: 1e-4
