@@ -79,52 +79,52 @@ class MegaDepth(BaseDataset):
             logger.info("Downloading the MegaDepth dataset.")
             self.download()
 
-    def download(self):
-        import os
-        import shutil
-        import zipfile
-        import torch    
-        data_dir = DATA_PATH / self.conf.data_dir
-        tmp_dir = data_dir.parent / "megadepth_tmp"
-        if tmp_dir.exists():
-            shutil.rmtree(tmp_dir)
-        tmp_dir.mkdir(exist_ok=True, parents=True)
-        url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
+    # def download(self):
+    #     import os
+    #     import shutil
+    #     import zipfile
+    #     import torch    
+    #     data_dir = DATA_PATH / self.conf.data_dir
+    #     tmp_dir = data_dir.parent / "megadepth_tmp"
+    #     if tmp_dir.exists():
+    #         shutil.rmtree(tmp_dir)
+    #     tmp_dir.mkdir(exist_ok=True, parents=True)
+    #     url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
         
-        tar_name = "megadepth1500.zip"
-        out_name = self.conf.image_subpath  # Adjust this to the correct output directory for the extracted data
+    #     tar_name = "megadepth1500.zip"
+    #     out_name = self.conf.image_subpath  # Adjust this to the correct output directory for the extracted data
         
-        tar_path = tmp_dir / tar_name
-        torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+    #     tar_path = tmp_dir / tar_name
+    #     torch.hub.download_url_to_file(url_base + tar_name, tar_path)
         
-        # Since it's a zip file, use the appropriate library to extract it
-        with zipfile.ZipFile(tar_path, 'r') as zip_ref:
-            zip_ref.extractall(tmp_dir)
+    #     # Since it's a zip file, use the appropriate library to extract it
+    #     with zipfile.ZipFile(tar_path, 'r') as zip_ref:
+    #         zip_ref.extractall(tmp_dir)
         
-        tar_path.unlink()  # Remove the zip file after extraction
+    #     tar_path.unlink()  # Remove the zip file after extraction
 
-        # List all the contents of the extraction path
-        print("Directory structure post-extraction:")
-        for root, dirs, files in os.walk(tmp_dir):
-            print(root)
-            for d in dirs:
-                print(f" - {d}/")
-            for f in files:
-                print(f" - {f}")
+    #     # List all the contents of the extraction path
+    #     print("Directory structure post-extraction:")
+    #     for root, dirs, files in os.walk(tmp_dir):
+    #         print(root)
+    #         for d in dirs:
+    #             print(f" - {d}/")
+    #         for f in files:
+    #             print(f" - {f}")
 
-        # Move the extracted directories to their final locations
-        if (tmp_dir / 'Undistorted_SfM').exists():
-            shutil.move(str(tmp_dir / 'Undistorted_SfM'), str(data_dir / self.conf.image_subpath))
+    #     # Move the extracted directories to their final locations
+    #     if (tmp_dir / 'Undistorted_SfM').exists():
+    #         shutil.move(str(tmp_dir / 'Undistorted_SfM'), str(data_dir / self.conf.image_subpath))
 
-        if (tmp_dir / 'depth_undistorted').exists():
-            shutil.move(str(tmp_dir / 'depth_undistorted'), str(data_dir / self.conf.depth_subpath))
+    #     if (tmp_dir / 'depth_undistorted').exists():
+    #         shutil.move(str(tmp_dir / 'depth_undistorted'), str(data_dir / self.conf.depth_subpath))
         
-        if (tmp_dir / 'scene_info').exists():
-            shutil.move(str(tmp_dir / 'scene_info'), str(data_dir / self.conf.info_dir))
+    #     if (tmp_dir / 'scene_info').exists():
+    #         shutil.move(str(tmp_dir / 'scene_info'), str(data_dir / self.conf.info_dir))
 
-        # Clean up the temporary directory if it's empty
-        if not any(tmp_dir.iterdir()):
-            shutil.rmtree(tmp_dir)
+    #     # Clean up the temporary directory if it's empty
+    #     if not any(tmp_dir.iterdir()):
+    #         shutil.rmtree(tmp_dir)
 
     # def download(self):
     #     data_dir = DATA_PATH / self.conf.data_dir
@@ -195,18 +195,93 @@ class MegaDepth(BaseDataset):
         # shutil.move(tmp_dir, data_dir)
 
         ##### Original Code #####        
-        # for tar_name, out_name in (
-        #     ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
-        #     ("depth_undistorted.tar.gz", self.conf.depth_subpath),
-        #     ("scene_info.tar.gz", self.conf.info_dir),
-        # ):
-        #     tar_path = tmp_dir / tar_name
-        #     torch.hub.download_url_to_file(url_base + tar_name, tar_path)
-        #     with tarfile.open(tar_path) as tar:
-        #         tar.extractall(path=tmp_dir)
-        #     tar_path.unlink()
-        #     shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
-        # shutil.move(tmp_dir, data_dir)
+    # def download(self):
+    #     data_dir = DATA_PATH / self.conf.data_dir
+    #     tmp_dir = data_dir.parent / "megadepth_tmp"
+
+    #     # Ensure the tmp_dir is properly set up
+    #     if not tmp_dir.exists():
+    #         raise Exception("Temporary directory does not exist or is empty, cannot proceed.")
+
+    #     # Specifically handle the scene_info.tar.gz file
+    #     tar_name = "scene_info.tar.gz.0a4527a0021b4cc4b75e7bc21e4c337c.partial"
+    #     out_name = self.conf.info_dir
+    #     tar_path = tmp_dir / tar_name
+    #     output_path = data_dir / out_name
+
+    #     # Check if the output directory already exists to avoid unnecessary operations
+    #     if not output_path.exists():
+    #         # Ensure the tar file is present
+    #         if tar_path.exists():
+    #             # Extract the tar file
+    #             print(f"Extracting {tar_name}...")
+    #             with tarfile.open(tar_path) as tar:
+    #                 tar.extractall(path=tmp_dir)
+    #             tar_path.unlink()  # Optionally remove the tar file after extraction
+                
+    #             # Assuming the directory name matches the tar name minus its '.tar.gz' part
+    #             extracted_folder = tmp_dir / tar_name.replace('.tar.gz', '')
+    #             if extracted_folder.exists():
+    #                 shutil.move(str(extracted_folder), str(output_path))
+    #             else:
+    #                 raise Exception(f"Extracted directory {extracted_folder} does not exist.")
+    #         else:
+    #             raise Exception(f"Tar file {tar_path} does not exist.")
+    #     else:
+    #         print(f"Directory {output_path} already exists, skipping extraction and moving.")
+
+    #     # Clean up the temporary directory if it's empty
+    #     if not any(tmp_dir.iterdir()):
+    #         shutil.rmtree(tmp_dir)
+    #         print("Cleaned up temporary directory.")
+    #     else:
+    #         print("Some files or directories remain in tmp_dir, not removing.")
+    # def download(self):
+    #     data_dir = DATA_PATH / self.conf.data_dir
+    #     tmp_dir = data_dir.parent / "megadepth_tmp"
+
+    #     if not tmp_dir.exists():
+    #         raise Exception("Temporary directory does not exist or is empty, cannot proceed.")
+
+    #     # if tmp_dir.exists():  # The previous download failed.
+    #     #     # shutil.rmtree(tmp_dir)
+    #     tmp_dir.mkdir(exist_ok=True, parents=True)
+    #     url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
+        
+    #     for tar_name, out_name in (
+    #         ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
+    #         ("depth_undistorted.tar.gz", self.conf.depth_subpath),
+    #         ("scene_info.tar.gz", self.conf.info_dir),
+    #     ):
+    #         print(tar_name, out_name)
+    #         tar_path = tmp_dir / tar_name
+    #         # torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+    #         with tarfile.open(tar_path) as tar:
+    #             tar.extractall(path=tmp_dir)
+    #         tar_path.unlink()
+            
+    #         shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
+    #     shutil.move(tmp_dir, data_dir)
+
+    def download(self):
+        data_dir = DATA_PATH / self.conf.data_dir
+        tmp_dir = data_dir.parent / "megadepth_tmp"
+        if tmp_dir.exists():  # The previous download failed.
+            shutil.rmtree(tmp_dir)
+        tmp_dir.mkdir(exist_ok=True, parents=True)
+        url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
+        for tar_name, out_name in (
+            ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
+            ("depth_undistorted.tar.gz", self.conf.depth_subpath),
+            ("scene_info.tar.gz", self.conf.info_dir),
+        ):
+            tar_path = tmp_dir / tar_name
+            torch.hub.download_url_to_file(url_base + tar_name, tar_path)
+            with tarfile.open(tar_path) as tar:
+                tar.extractall(path=tmp_dir)
+            tar_path.unlink()
+            shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
+        shutil.move(tmp_dir, data_dir)
 
     def get_dataset(self, split):
         assert self.conf.views in [1, 2, 3]
@@ -500,6 +575,8 @@ class _PairDataset(torch.utils.data.Dataset):
 
 class _TripletDataset(_PairDataset):
     def sample_new_items(self, seed):
+        logger.info("Sampling new %s data with seed %d.", self.split, seed)
+   
         logging.info("Sampling new triplets with seed %d", seed)
         self.items = []
         split = self.split
