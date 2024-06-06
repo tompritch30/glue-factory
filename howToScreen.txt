@@ -3,6 +3,23 @@ source ~/.bashrc
 
 scp ~/.bashrc tp4618@gpu02: ~/.brcgpu02.txt
 
+ga, ga-, gc "dfd", gp, gs 
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/github_id_rsa
+
+# Accidentally on HTTP instead of ssh# Check current remote URL
+git remote -v
+
+# Update remote URL to use SSH
+git remote set-url origin git@github.com:tompritch30/glue-factory.git
+
+# Verify the change
+git remote -v
+
+# Push changes
+git push
+
 
 pip install torch>=1.7 torchvision>=0.8 numpy opencv-python tqdm matplotlib scipy h5py omegaconf tensorboard albumentations kornia seaborn joblib
 
