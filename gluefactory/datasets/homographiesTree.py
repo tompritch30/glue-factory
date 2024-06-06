@@ -54,7 +54,7 @@ def sample_homography(img, conf: dict, size: list):
 class HomographySynthTreeDataset(BaseDataset):
     default_conf = {
         # image search
-        "data_dir": "synthTree43K/SynthTree43/test_set",  # the top-level directory
+        "data_dir": "SynthTree43/test_set",  # the top-level directory
         "image_dir": "",  # no subdirectory in this case
         "image_list": "image_list.txt",  # the generated image list
         "glob": ["*.jpg", "*.png", "*.jpeg", "*.JPG", "*.PNG"],
@@ -88,9 +88,15 @@ class HomographySynthTreeDataset(BaseDataset):
             "max_num_keypoints": -1,
             "force_num_keypoints": False,
         },
+        ### I added
+        "log_level": "ERROR"  # INFO = will log, ERROR = no logs, DEBUG, WARNING, CRITICAL
     }
 
     def _init(self, conf):
+        # Set the logging level based on the configuration
+        logging_level = getattr(logging, conf.log_level.upper(), logging.INFO)
+        logger.setLevel(logging_level)
+
         data_dir = DATA_PATH / conf.data_dir
         if not data_dir.exists():
             raise FileNotFoundError(data_dir)
@@ -146,140 +152,6 @@ class HomographySynthTreeDataset(BaseDataset):
         self.images = {"train": train_images, "val": val_images}
 
         logger.info(f"Loaded {len(train_images)} training and {len(val_images)} validation images.")
-
-    def get_dataset(self, split):
-        return _Dataset(self.conf, self.images[split], split)
-
-class HomographyDataset(BaseDataset):
-    default_conf = {
-        # image search
-        "data_dir": "revisitop1m",  # the top-level directory
-        "image_dir": "jpg/",  # the subdirectory with the images
-        "image_list": "revisitop1m.txt",  # optional: list or filename of list
-        "glob": ["*.jpg", "*.png", "*.jpeg", "*.JPG", "*.PNG"],
-        # splits
-        "train_size": 100,
-        "val_size": 10,
-        "shuffle_seed": 0,  # or None to skip
-        # image loading
-        "grayscale": False,
-        "triplet": False,
-        "right_only": False,  # image0 is orig (rescaled), image1 is right
-        "reseed": False,
-        "homography": {
-            "difficulty": 0.8,
-            "translation": 1.0,
-            "max_angle": 60,
-            "n_angles": 10,
-            "patch_shape": [640, 480],
-            "min_convexity": 0.05,
-        },
-        "photometric": {
-            "name": "dark",
-            "p": 0.75,
-            # 'difficulty': 1.0,  # currently unused
-        },
-        # feature loading
-        "load_features": {
-            "do": False,
-            **CacheLoader.default_conf,
-            "collate": False,
-            "thresh": 0.0,
-            "max_num_keypoints": -1,
-            "force_num_keypoints": False,
-        },
-    }
-
-    def _init(self, conf):
-        data_dir = DATA_PATH / conf.data_dir
-        if not data_dir.exists():
-            if conf.data_dir == "revisitop1m":
-                logger.info("Downloading the revisitop1m dataset.")
-                self.download_revisitop1m()
-            else:
-                raise FileNotFoundError(data_dir)
-
-        image_dir = data_dir / conf.image_dir
-        images = []
-        
-        # I added:
-        logger.info(f"Data directory: {data_dir}")
-        logger.info(f"Image directory: {image_dir}")
-        logger.info(f"Image list: {conf.image_list}")
-        
-        if conf.image_list is None:
-            glob = [conf.glob] if isinstance(conf.glob, str) else conf.glob
-            for g in glob:
-                images += list(image_dir.glob("**/" + g))
-            if len(images) == 0:
-                raise ValueError(f"Cannot find any image in folder: {image_dir}.")
-            images = [i.relative_to(image_dir).as_posix() for i in images]
-            images = sorted(images)  # for deterministic behavior
-            logger.info("Found %d images in folder.", len(images))
-            ### I added
-            logger.info(f"Sample images: {images[:5]}")
-        elif isinstance(conf.image_list, (str, Path)):
-            image_list = data_dir / conf.image_list
-            if not image_list.exists():
-                raise FileNotFoundError(f"Cannot find image list {image_list}.")
-            images = image_list.read_text().rstrip("\n").split("\n")
-            for image in images:
-                if not (image_dir / image).exists():
-                    raise FileNotFoundError(image_dir / image)
-            logger.info("Found %d images in list file.", len(images))
-            ### I added
-            logger.info(f"Sample images: {images[:5]}")
-        elif isinstance(conf.image_list, omegaconf.listconfig.ListConfig):
-            images = conf.image_list.to_container()
-            for image in images:
-                if not (image_dir / image).exists():
-                    raise FileNotFoundError(image_dir / image)
-            ### I added
-            logger.info(f"Sample images: {images[:5]}")
-        else:
-            raise ValueError(conf.image_list)       
-
-        if conf.shuffle_seed is not None:
-            np.random.RandomState(conf.shuffle_seed).shuffle(images)       
-        
-        # Ensure images are sorted for consistent behavior
-        images = sorted(images)
-        logger.info(f"Total images found: {len(images)}")
-
-        # Dynamically determine the split based on an 80-20 split
-        train_size = int(len(images) * 0.8)  # 80% of images go to training
-
-        # Split images into training and validation sets
-        train_images = images[:train_size]
-        val_images = images[train_size:]
-        self.images = {"train": train_images, "val": val_images}
-
-        logger.info(f"Loaded {len(train_images)} training and {len(val_images)} validation images.")
-        
-        # train_images = images[: conf.train_size]
-        # val_images = images[conf.train_size : conf.train_size + conf.val_size]
-        # self.images = {"train": train_images, "val": val_images}
-
-
-    def download_revisitop1m(self):
-        data_dir = DATA_PATH / self.conf.data_dir
-        tmp_dir = data_dir.parent / "revisitop1m_tmp"
-        if tmp_dir.exists():  # The previous download failed.
-            shutil.rmtree(tmp_dir)
-        image_dir = tmp_dir / self.conf.image_dir
-        image_dir.mkdir(exist_ok=True, parents=True)
-        num_files = 100
-        url_base = "http://ptak.felk.cvut.cz/revisitop/revisitop1m/"
-        list_name = "revisitop1m.txt"
-        torch.hub.download_url_to_file(url_base + list_name, tmp_dir / list_name)
-        for n in tqdm(range(num_files), position=1):
-            tar_name = "revisitop1m.{}.tar.gz".format(n + 1)
-            tar_path = image_dir / tar_name
-            torch.hub.download_url_to_file(url_base + "jpg/" + tar_name, tar_path)
-            with tarfile.open(tar_path) as tar:
-                tar.extractall(path=image_dir)
-            tar_path.unlink()
-        shutil.move(tmp_dir, data_dir)
 
     def get_dataset(self, split):
         return _Dataset(self.conf, self.images[split], split)

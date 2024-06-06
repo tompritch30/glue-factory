@@ -1,8 +1,8 @@
 data:
-    name: homographies
-    data_dir: revisitop1m
-    train_size: 150000
-    val_size:  2000
+    name: homographiesTree #.HomographySynthTreeDataset # HomographySynthTreeDataset
+    data_dir: synthTree43K/SynthTree43/test_set
+    train_size: 40000 # 150000
+    val_size:  3000
     batch_size: 128
     num_workers: 14
     homography:
