@@ -3,8 +3,8 @@ data:
     data_dir: synthTree43K/SynthTree43/test_set
     train_size: 40000 # 150000
     val_size:  3000
-    batch_size: 128
-    num_workers: 14
+    batch_size: 32 # 64 # 128
+    num_workers: 4 # 6 # 14
     homography:
         difficulty: 0.7
         max_angle: 45
