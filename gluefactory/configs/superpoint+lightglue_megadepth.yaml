@@ -5,7 +5,7 @@ data:
         side: long
         square_pad: True
     train_split: train_scenes_clean.txt
-    train_num_per_scene: 300
+    train_num_per_scene: 100 #300
     val_split: valid_scenes_clean.txt
     val_pairs: valid_pairs.txt
     min_overlap: 0.1
@@ -13,8 +13,8 @@ data:
     num_overlap_bins: 3
     read_depth: true
     read_image: true
-    batch_size: 32
-    num_workers: 14
+    batch_size: 4 # 8 # 32
+    num_workers: 4 # 14
     load_features:
         do: false  # enable this if you have cached predictions
         path: exports/megadepth-undist-depth-r1024_SP-k2048-nms3/{scene}.h5

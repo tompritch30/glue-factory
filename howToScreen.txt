@@ -1,0 +1,172 @@
+scp ~/.bashrc tp4618@servername: ~/.brcgpu02
+source ~/.bashrc
+
+scp ~/.bashrc tp4618@gpu02: ~/.brcgpu02.txt
+
+
+pip install torch>=1.7 torchvision>=0.8 numpy opencv-python tqdm matplotlib scipy h5py omegaconf tensorboard albumentations kornia seaborn joblib
+
+pip install git+https://github.com/cvg/LightGlue.git
+pip install git+https://github.com/PoseLib/PoseLib.git@9c8f3ca1baba69e19726cc7caded574873ec1f9e
+pip install git+https://github.com/iago-suarez/pytlsd.git@v0.0.5
+pip install git+https://github.com/cvg/DeepLSD.git
+pip install git+https://github.com/rpautrat/homography_est.git@17b200d528e6aa8ac61a878a29265bf5f9d36c41
+
+# Start a new screen session
+screen
+
+# Start a new screen session with a specific name
+screen -S session_name
+
+# Detach from the current screen session
+# Press: Ctrl-a then d
+
+# Reattach to a detached screen session (if there's only one detached session)
+screen -r
+
+# Reattach to a named screen session
+screen -r session_name
+
+# List all screen sessions
+screen -ls
+
+# Terminate a screen session from within the session
+# Press: Ctrl-a then k, then press 'y' to confirm
+
+# Create a new window within a screen session
+# Press: Ctrl-a then c
+
+# Switch between windows in a screen session
+# Press: Ctrl-a then n (next window)
+# Press: Ctrl-a then p (previous window)
+
+# Split the current window horizontally (regions can display multiple screens)
+# Press: Ctrl-a then S
+
+# Split the current window vertically (requires a patch or newer versions)
+# Press: Ctrl-a then |
+
+# Navigate between split regions
+# Press: Ctrl-a then Tab
+
+# Close a split region
+# Press: Ctrl-a then X
+
+# Detach and logout (detach all attached sessions)
+screen -dD
+
+# Resume a session and prevent others from re-attaching
+screen -x session_name
+
+# Delete a screen
+screen -S <name> -X quit 
+
+nvidia-smi
+
+How to Select and Copy Text in screen Copy Mode:
+
+    Enter Copy Mode:
+        Press Ctrl-a then [ to enter copy mode. This will allow you to move the cursor using your keyboard.
+
+    Move the Cursor to Start Point:
+        Use the arrow keys to navigate the cursor to the beginning of the text you want to select.
+
+    Begin Selection:
+        Press the space bar to start the selection. This sets the starting point of the text you want to copy.
+
+    Extend Selection:
+        Move the cursor with the arrow keys to extend the selection to the end of the text you wish to copy.
+
+    Copy the Text:
+        Press the space bar again once you have highlighted the desired text. This copies the selected text to the screen clipboard.
+
+    Exit Copy Mode:
+        You can exit copy mode by pressing Enter or simply by pressing Ctrl-a then [ again.
+
+
+
+Pasting Text:
+
+    Paste the Copied Text:
+        To paste the copied text within screen, you press Ctrl-a followed by ]. This will paste the copied text at the cursor’s current location in any of the screen windows.
+
+
+Plan:
+Step 1: Finalize Submodule Changes
+
+Before initializing and updating submodules in your main project, make sure each submodule repository is correctly set up and that all changes are committed:
+
+    Navigate to Each Submodule Directory:
+
+    bash
+
+cd path/to/submodule
+
+Check the Status and Commit Changes:
+Inside each submodule, commit any changes that you want to keep:
+
+bash
+
+git add .
+git commit -m "Update changes or fix issues"
+
+Push Submodule Changes:
+Still inside each submodule directory, push the changes to the respective remote repository:
+
+bash
+
+    git push origin master  # Or whichever branch you are on
+
+Step 2: Initialize and Update Submodules in Main Repository
+
+Once all individual submodules are updated and pushed, go back to your main project directory and update the submodules to ensure they are correctly linked and initialized:
+
+    Navigate to Main Project Directory:
+
+    bash
+
+cd path/to/main/project
+
+Initialize and Update Submodules:
+This step will ensure that your local submodule references are initialized and updated:
+
+bash
+
+    git submodule update --init --recursive
+
+Step 3: Stage and Commit Main Project Changes
+
+After your submodules are set up and initialized, you can safely stage and commit changes in your main project:
+
+    Stage Changes:
+    If external/tartanair_tools or any other directories need to be converted to submodules and were incorrectly added, first unstage them:
+
+    bash
+
+git rm --cached path/to/wrongly-added-directory
+
+Then add them correctly as submodules if necessary:
+
+bash
+
+git submodule add <repository-url> path/to/submodule
+
+Commit Changes in Main Project:
+Now you can safely add all changes and commit:
+
+bash
+
+git add .
+git commit -m "Set up submodules and update project structure"
+
+Push Main Project Changes:
+Finally, push the changes of your main project to the remote repository:
+
+bash
+
+    git push origin master
+
+Additional Notes:
+
+    Submodule URLs: When adding submodules with git submodule add, you need to provide the URL of the repository you wish to add as a submodule.
+    Avoid git add . Until Ready: Use git add . cautiously to avoid staging unwanted files or directories again.
