@@ -12,6 +12,15 @@ pip install git+https://github.com/iago-suarez/pytlsd.git@v0.0.5
 pip install git+https://github.com/cvg/DeepLSD.git
 pip install git+https://github.com/rpautrat/homography_est.git@17b200d528e6aa8ac61a878a29265bf5f9d36c41
 
+find ~ \( -name '*.pyc' -o -name '.cache' -o -name 'core' -o -name '.vscode' -o -path '*venv*' \) -print
+find ~ \( -name '*.pyc' -o -name '.cache' -o -name 'core' -o -name '.vscode' -o -path '*venv*' \) -exec rm -rf {} +
+
+# Bash terminal types
+chsh -s $(which zsh)
+chsh -c $(which bash)
+zsh
+bash
+
 # Start a new screen session
 screen
 

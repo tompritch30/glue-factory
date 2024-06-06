@@ -1,0 +1,120 @@
+# Starting Zsh
+zsh
+
+# Exiting Zsh
+exit
+
+# Configuration Files
+# Main configuration file
+~/.zshrc
+
+# Other configuration files
+~/.zshenv       # Sourced on all invocations of the shell
+~/.zprofile     # Sourced on login shells
+~/.zshrc        # Sourced on interactive shells
+~/.zlogin       # Sourced on login shells after .zprofile
+~/.zlogout      # Sourced when login shell exits
+
+# History
+# Set history size
+HISTSIZE=5000
+SAVEHIST=5000
+
+# History file location
+HISTFILE=~/.zsh_history
+
+# Search command history
+# Reverse search through history
+# Press: Ctrl-R
+
+# Forward search through history (disable with stty -ixon if it doesn't work)
+# Press: Ctrl-S
+
+# Aliases
+# Creating aliases
+alias gs='git status'
+alias gp='git push'
+alias ga='git add .'
+alias ga-='git add -u'
+alias gc='git commit -m'
+alias gl='git log'
+
+# Directory Navigation
+# Go to home directory
+cd ~
+
+# Go to previous directory
+cd -
+
+# List directory contents
+ls
+
+# List all files, including hidden files
+ls -a
+
+# Enhanced Globbing
+# Match all .txt files in the current directory
+ls *.txt
+
+# Match all .txt files recursively
+ls **/*.txt
+
+# Zsh Options
+# Enable autocd (change directory without typing 'cd')
+setopt autocd
+
+# Enable case-insensitive globbing
+setopt nocaseglob
+
+# Disable beep sound
+setopt no_beep
+
+# Key Bindings
+# Clear the screen
+# Press: Ctrl-L
+
+# Move to the beginning of the line
+# Press: Ctrl-A
+
+# Move to the end of the line
+# Press: Ctrl-E
+
+# Cut text from cursor to the end of the line
+# Press: Ctrl-K
+
+# Paste text
+# Press: Ctrl-Y
+
+# Zsh Features
+# Enable spell correction
+setopt correct
+
+# Enable extended globbing
+setopt extended_glob
+
+# Prompt Customization
+# Set a simple prompt
+PROMPT='%n@%m %1~ %# '
+
+# Using Oh My Zsh
+# Install Oh My Zsh
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Enable plugins in ~/.zshrc
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+
+# Change theme in ~/.zshrc
+ZSH_THEME="agnoster"
+
+# Reload Zsh configuration
+source ~/.zshrc
+
+# Job Control
+# List jobs
+jobs
+
+# Send job to background
+bg %jobnumber
+
+# Bring job to foreground
+fg %jobnumber
