@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
 
 
-# python -m gluefactory.train sp+lg_megadepth \ --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml \ train.load_experiment=sp+lg_homography
-
 def sample_n(data, num, seed=None):
     if len(data) > num:
         selected = np.random.RandomState(seed).choice(len(data), num, replace=False)
@@ -35,13 +33,13 @@ def sample_n(data, num, seed=None):
         return data
 
 
-class MegaDepth(BaseDataset):
+class TreeDepth(BaseDataset):
     default_conf = {
         # paths
-        "data_dir": "megadepth/",
-        "depth_subpath": "depth_undistorted/",
-        "image_subpath": "Undistorted_SfM/",
-        "info_dir": "scene_info/",  # @TODO: intrinsics problem?
+        "data_dir": "syntheticForestData/",
+        "depth_subpath": "depthData/",
+        "image_subpath": "imageData/",
+        "info_dir": "poseData/",  # @TODO: intrinsics problem? -- is this required/whta is it for??
         # Training
         "train_split": "train_scenes_clean.txt",
         "train_num_per_scene": 500,
@@ -77,40 +75,20 @@ class MegaDepth(BaseDataset):
     }
 
     def _init(self, conf):
-        if not (DATA_PATH / conf.data_dir).exists():
-            logger.info("Downloading the MegaDepth dataset.")
-            self.download()
+        # if not (DATA_PATH / conf.data_dir).exists():
+        #     logger.info("Downloading the MegaDepth dataset.")
+        #     self.download()
         ### I added
-        logger.info(f"Initialized MegaDepth dataset with configuration: {conf}")
+        logger.info(f"Initialized TreeDepth dataset with configuration: {conf}")
           
-
-    def download(self):
-        data_dir = DATA_PATH / self.conf.data_dir
-        tmp_dir = data_dir.parent / "megadepth_tmp"
-        if tmp_dir.exists():  # The previous download failed.
-            shutil.rmtree(tmp_dir)
-        tmp_dir.mkdir(exist_ok=True, parents=True)
-        url_base = "https://cvg-data.inf.ethz.ch/megadepth/"
-        for tar_name, out_name in (
-            ("Undistorted_SfM.tar.gz", self.conf.image_subpath),
-            ("depth_undistorted.tar.gz", self.conf.depth_subpath),
-            ("scene_info.tar.gz", self.conf.info_dir),
-        ):
-            tar_path = tmp_dir / tar_name
-            torch.hub.download_url_to_file(url_base + tar_name, tar_path)
-            with tarfile.open(tar_path) as tar:
-                tar.extractall(path=tmp_dir)
-            tar_path.unlink()
-            shutil.move(tmp_dir / tar_name.split(".")[0], tmp_dir / out_name)
-        shutil.move(tmp_dir, data_dir)
-        logger.info("Completed downloading and extracting MegaDepth dataset.")
-
 
     def get_dataset(self, split):
         assert self.conf.views in [1, 2, 3]
         if self.conf.views == 3:
+            print("tripletdataset")
             return _TripletDataset(self.conf, split)
         else:
+            print("pairdataset")
             return _PairDataset(self.conf, split)
 
 

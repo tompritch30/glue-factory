@@ -1,0 +1,7 @@
+### THIS IS DUMMY DATA
+SF_E_L_P001/example0001.jpg SF_E_L_P001/example0002.jpg
+SF_E_L_P001/example0002.jpg SF_E_L_P001/example0003.jpg 
+SF_E_L_P001/example0003.jpg SF_E_L_P001/example0004.jpg 
+SFW_H_L_P017/example0001.jpg SFW_H_L_P017/example0002.jpg 
+SFW_H_L_P017/example0002.jpg SFW_H_L_P017/example0003.jpg 
+SFW_H_L_P017/example0003.jpg SFW_H_L_P017/example0004.jpg 
