@@ -762,8 +762,8 @@ class _PairDataset(torch.utils.data.Dataset):
             #     # limited_logger.log("info.keys():", info.keys())
             #     # limited_logger.log("\nIMAGE: ", info["image_paths"],  "\nDEPTH: ",  info["depth_paths"], "\nPOSES: ", info["poses"], "\nINTRINSRICS: ", info["intrinsics"])
             
-            print(info["poses"].shape)
-            print(info["poses"])
+            # print(info["poses"].shape)
+            # print(info["poses"])
 
             # print(info["depth_paths"].shape)
             # print(info["depth_paths"])

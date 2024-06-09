@@ -256,8 +256,7 @@ class _PairDataset(torch.utils.data.Dataset):
             flowData/SFW_H_P017/001010_001011_flow.npy  
 
             """
-            # np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
-           
+            # np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])           
             
             base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
             info = load_scene_data(base_directory, scene)
@@ -340,60 +339,81 @@ class _PairDataset(torch.utils.data.Dataset):
                 #     )
                 # except:
                 #     print("failed for: ", scene)
+
                 valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
+                # valid = np.logical_and(self.images[scene] != None, self.depths[scene] != None)
+
+                #  valid = (self.images[scene] != None) | (self.depths[scene] != None)
 
                 if valid:
                     ind = np.where(valid)[0]
-                    print(info.keys())
-                    print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+                    # print(info.keys())
+                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
                     
+                    def load_npy_file(partial_file_path):
+                        base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
+                        file_path = os.path.join(base_directory, partial_file_path)
+
+                        if os.path.exists(file_path):
+                            return np.load(file_path)
+                        else:
+                            print(f"File not found: {file_path}")
+                            return None
+
                     def project_points(depth, intrinsics, pose):
-                        # Generate pixel coordinates grid
                         h, w = depth.shape
                         x, y = np.meshgrid(np.arange(w), np.arange(h))
                         z = depth.flatten()
 
-                        # Transform pixel coordinates to camera coordinates
                         x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
                         y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
                         points = np.vstack((x, y, z, np.ones_like(z)))
 
-                        # Apply the pose transformation
                         transformed_points = pose @ points
-                        transformed_points /= transformed_points[2, :]  # Normalize by z to get homogeneous coordinates
+                        transformed_points /= transformed_points[2, :]
 
-                        # Project back to 2D coordinates using second frame's intrinsics
                         x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
                         y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
 
-                        # Check if the points are within the image bounds
                         valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
                         return np.count_nonzero(valid), valid.size
 
-                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
-                    
-                    def calculate_overlap_matrix(depth_maps, poses, intrinsics):
-                        num_frames = len(depth_maps)
-                        overlap_matrix = np.zeros((num_frames, num_logframes)) ##? num log frames
+                    def calculate_overlap_matrix(depth_paths, poses, intrinsics):
+                        num_frames = len(depth_paths)
+                        # print("num_frames", num_frames)
+                        overlap_matrix = np.zeros((num_frames, num_frames))
 
                         for i in range(num_frames - 1):
-                            for j in range(i + 1, num_frames):
-                                # Pose from frame i to j
-                                pose = np.linalg.inv(poses[j]) @ poses[i]
-                                
-                                # Project and calculate overlap
-                                count, total = project_points(depth_maps[i], intrinsics[i], pose)
-                                overlap = count / total  # Compute overlap as a ratio
-                                
+                            for j in range(i + 1, num_frames):                                
+                                depth_paths[i] = str(depth_paths[i])
+                                # pose_paths[i] = str(pose_paths[i])
+                                # print("depth_paths[i]", i, depth_paths[i])
+                                depth_i = load_npy_file(depth_paths[i])
+                                pose_i = poses[i] # load_npy_file(pose_paths[i])
+                                depth_j = load_npy_file(depth_paths[j])
+                                pose_j = poses[j] # load_npy_file(pose_paths[j])
+
+                                if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
+                                    continue
+
+                                pose = np.linalg.inv(pose_j) @ pose_i
+                                count, total = project_points(depth_i, intrinsics[i], pose)
+                                overlap = count / total
+
+                                print(f"Overlap between frame {i} and {j}: {overlap}")
+
                                 overlap_matrix[i, j] = overlap
-                                overlap_matrix[j, i] = overlap  # Assuming symmetry for simplicity
+                                overlap_matrix[j, i] = overlap
 
                         return overlap_matrix
 
-                    
-                    overlap_matrix = calculate_overlap_matrix(depth_maps, poses, intrinsics)
-                    
+                    # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
+                    overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
+                    info["overlap_matrix"] = overlap_matrix
+
+                    print("overlap_matrix", overlap_matrix)
                     mat = info["overlap_matrix"][valid][:, valid]
+                    print("mat", mat)
 
                     if num_pos is not None:
                         # Sample a subset of pairs, binned by overlap.
