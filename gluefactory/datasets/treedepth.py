@@ -120,7 +120,7 @@ def load_scene_data(base_dir, scene):
 
     length = max(len(depth_data), len(image_data), len(pose_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
-    camera_intrinsics = np.full(length, K)
+    camera_intrinsics = np.array([K] * length)
 
     return {
         "image_paths": image_data,
