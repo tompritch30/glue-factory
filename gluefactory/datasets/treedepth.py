@@ -97,13 +97,17 @@ class TreeDepth(BaseDataset):
 import os
 
 def load_scene_data(base_dir, scene):
+    # fix this
+    fileListDir = base_dir + '/fileLists'
+    
     # Removing 'L_' or 'R_' for pose files naming
-    pose_scene = scene.replace('_L', '').replace('_R', '')
+    flow_scene = scene.replace('_L', '').replace('_R', '')
     
     # Define file paths for depth, image, and pose data
-    depth_file_path = os.path.join(base_dir, f"depthData_{scene}.txt")
-    image_file_path = os.path.join(base_dir, f"imageData_{scene}.textView")
-    pose_file_path = os.path.join(base_dir, f"poses_{pose_scene}.txt")
+    depth_file_path = os.path.join(fileListDir, f"depthData_{scene}.txt")
+    image_file_path = os.path.join(fileListDir, f"imageData_{scene}.txt")
+    # THIS IS FLOW DATA!! need to be poses!    
+    flow_file_path  = os.path.join(fileListDir, f"poseData_{flow_scene}.txt")
 
     # Function to read data from a text file and convert to numpy array
     def load_data_from_file(file_path):
@@ -116,17 +120,56 @@ def load_scene_data(base_dir, scene):
     # Load data
     depth_data = load_data_from_file(depth_file_path)
     image_data = load_data_from_file(image_file_path)
-    pose_data = load_data_from_file(pose_file_path)
+    flow_data = load_data_from_file(flow_file_path)
+    
+    def pose_to_matrix(pose):
+        import numpy as np
+        from scipy.spatial.transform import Rotation as R
+        """Convert a pose (tx, ty, tz, qx, qy, qz, qw) to a 4x4 transformation matrix."""
 
-    length = max(len(depth_data), len(image_data), len(pose_data))
+        tx, ty, tz, qx, qy, qz, qw = pose
+        rotation = R.from_quat([qx, qy, qz, qw])
+        rotation_matrix = rotation.as_matrix()
+
+        transformation_matrix = np.eye(4)
+        transformation_matrix[:3, :3] = rotation_matrix
+        transformation_matrix[:3, 3] = [tx, ty, tz]
+
+        return transformation_matrix
+
+    def load_poses_from_file(file_path):
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+                # return as 4x4 matrix as expected
+                return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
+
+        else:
+            return np.array([])
+
+    # Handle pose data based on scene naming
+    poses = []
+    if '_L_' in scene:
+        pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_left.txt")
+    elif '_R_' in scene:
+        pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_right.txt")
+    else:
+        print("Neither L nor R in scene identifier. Check naming convention!")
+
+    if os.path.exists(pose_file_path):
+        poses = load_poses_from_file(pose_file_path)
+
+    length = max(len(depth_data), len(image_data), len(flow_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
     camera_intrinsics = np.array([K] * length)
 
     return {
         "image_paths": image_data,
         "depth_paths": depth_data,
-        "poses": pose_data,
-        "intrinsics" : camera_intrinsics
+        "flow_data": flow_data,
+        "intrinsics" : camera_intrinsics, 
+        "poses" : poses,
+        # NEED TO REVIEW IF NEED LEFT AND RIGHT POSES??
     }
 
 
@@ -174,8 +217,8 @@ class _PairDataset(torch.utils.data.Dataset):
         # for every list in the sceneList file 
         for scene in scenes:
             path = self.info_dir / (scene) # + ".npz")
-            if count < 1:
-                print("path", path)
+            # if count < 1:
+            #     print("path", path)
                 # path /vol/bitbucket/tp4618/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists/SFW_E_L_P000
             
             # for every line 
@@ -214,16 +257,20 @@ class _PairDataset(torch.utils.data.Dataset):
 
             """
             # np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
-
            
             
-            base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
+            base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
             info = load_scene_data(base_directory, scene)
             
             self.images[scene] = info["image_paths"]
             self.depths[scene] = info["depth_paths"]
             self.poses[scene] = info["poses"]            
             self.intrinsics[scene] = info["intrinsics"]
+            c = 0
+            if c < 1:
+                print("image, depth, pose, intrinsrtic", info["image_paths"].shape, info["depth_paths"].shape, info["poses"].shape, info["intrinsics"].shape, sep="\n")
+                # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+            c+=1
 
         if load_sample:
             self.sample_new_items(conf.seed)
@@ -297,6 +344,7 @@ class _PairDataset(torch.utils.data.Dataset):
 
                 if valid:
                     ind = np.where(valid)[0]
+                    print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
                     mat = info["overlap_matrix"][valid][:, valid]
 
                     if num_pos is not None:

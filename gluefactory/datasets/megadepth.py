@@ -576,7 +576,7 @@ def sample_n(data, num, seed=None):
     else:
         return data
 
-limited_logger = LimitedLogger()
+# limited_logger = LimitedLogger()
 
 class MegaDepth(BaseDataset):
     default_conf = {
@@ -664,13 +664,13 @@ class _PairDataset(torch.utils.data.Dataset):
         self.split = split
         self.conf = conf
 
-        # limited_logger.log("IN PAIR DATASET INIT\n\n")
+        # # limited_logger.log("IN PAIR DATASET INIT\n\n")
 
-        # limited_logger.log("pair dataset")
-        # limited_logger.log("self.root, self.split, self.conf", self.root, self.split, self.conf)
+        # # limited_logger.log("pair dataset")
+        # # limited_logger.log("self.root, self.split, self.conf", self.root, self.split, self.conf)
 
         split_conf = conf[split + "_split"]
-        # limited_logger.log("split_conf", split_conf)
+        # # limited_logger.log("split_conf", split_conf)
 
         if isinstance(split_conf, (str, Path)):
             scenes_path = scene_lists_path / split_conf
@@ -680,8 +680,8 @@ class _PairDataset(torch.utils.data.Dataset):
         else:
             raise ValueError(f"Unknown split configuration: {split_conf}.")
         scenes = sorted(set(scenes))
-        limited_logger.log(len(scenes))
-        limited_logger.log("scenes", scenes)
+        # limited_logger.log(len(scenes))
+        # limited_logger.log("scenes", scenes)
 
 
         if conf.load_features.do:
@@ -697,15 +697,15 @@ class _PairDataset(torch.utils.data.Dataset):
 
         # load metadata
         self.info_dir = self.root / self.conf.info_dir
-        limited_logger.log("self.info_dir" , self.info_dir)
+        # limited_logger.log("self.info_dir" , self.info_dir)
         self.scenes = []
 
         count = 0
         for scene in scenes:
             # print("scenes[:10]", scenes[:10])
-            if count < 1:
-                limited_logger.log(scene)
-            count +=1
+            # if count < 1:
+            #     # limited_logger.log(scene)
+            # count +=1
             path = self.info_dir / (scene + ".npz")
             # print("path", path)
             
@@ -714,7 +714,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 # ### I added
                 # if count == 6:
                 #     # logger.info(f"Loaded scene info for {scene}: {info.keys()}")
-                #     limited_logger.log(f"Loaded info for scene {scene}. Keys: {list(info.keys())}")
+                #     # limited_logger.log(f"Loaded info for scene {scene}. Keys: {list(info.keys())}")
                 #     # ['image_paths', 'depth_paths', 'intrinsics', 'poses', 'overlap_matrix', 'scale_ratio_matrix', 'angles', 'n_points3D', 'points3D_id_to_2D', 'points3D_id_to_ndepth']
                 #     """
                 #     image_paths: Paths to image files. [Undistorted_SfM/0012/images/2303158722_39e1c8d583_o.jpg, ...] for each image in dir P001 etc
@@ -725,26 +725,26 @@ class _PairDataset(torch.utils.data.Dataset):
                 #     overlap_matrix: A matrix showing overlap metrics between different images.
                 #     scale_ratio_matrix, angles, n_points3D, points3D_id_to_2D, points3D_id_to_ndepth: These likely pertain to geometric transformations, alignment metrics, and 3D-to-2D point correspondences used in depth and image processing.
                 #     """
-                #     limited_logger.log("info['image_paths']", info['image_paths'].shape, info['image_paths'])
-                #     limited_logger.log("info['depth_paths']", info['depth_paths'].shape, info['depth_paths'])
-                #     limited_logger.log("info['intrinsics']", info['intrinsics'].shape,info['intrinsics'])
-                #     limited_logger.log("info['poses']", info['poses'].shape, info['poses'])
+                #     # limited_logger.log("info['image_paths']", info['image_paths'].shape, info['image_paths'])
+                #     # limited_logger.log("info['depth_paths']", info['depth_paths'].shape, info['depth_paths'])
+                #     # limited_logger.log("info['intrinsics']", info['intrinsics'].shape,info['intrinsics'])
+                #     # limited_logger.log("info['poses']", info['poses'].shape, info['poses'])
                 #     ## this stuff likely not needed. 
-                #     # limited_logger.log("info['overlap_matrix']", info['overlap_matrix'].shape, info['overlap_matrix'])
-                #     # limited_logger.log("info['scale_ratio_matrix']", info['scale_ratio_matrix'].shape, info['scale_ratio_matrix'])
-                #     # limited_logger.log("info['angles']", info['angles'].shape, info['angles'])
-                #     # limited_logger.log("info['n_points3D']", info['n_points3D'].shape, info['n_points3D'])
+                #     # # limited_logger.log("info['overlap_matrix']", info['overlap_matrix'].shape, info['overlap_matrix'])
+                #     # # limited_logger.log("info['scale_ratio_matrix']", info['scale_ratio_matrix'].shape, info['scale_ratio_matrix'])
+                #     # # limited_logger.log("info['angles']", info['angles'].shape, info['angles'])
+                #     # # limited_logger.log("info['n_points3D']", info['n_points3D'].shape, info['n_points3D'])
 
                 #     # for key in info.keys():
                 #     #     data = info[key]
                 #     #     if data is not None:
-                #     #         limited_logger.log(f"{key}: type={type(data)}, shape={data.shape}")
-                #     #         limited_logger.log(f"Sample data from {key} (first 10 entries): {data[:1]}")  
-                #     #         limited_logger.log(f"^^^^ KEY {key}")  
+                #     #         # limited_logger.log(f"{key}: type={type(data)}, shape={data.shape}")
+                #     #         # limited_logger.log(f"Sample data from {key} (first 10 entries): {data[:1]}")  
+                #     #         # limited_logger.log(f"^^^^ KEY {key}")  
                             
-                #     #         # limited_logger.log(f"{key}: type={type(data)}, shape={getattr(data, 'shape', 'N/A')}")
+                #     #         # # limited_logger.log(f"{key}: type={type(data)}, shape={getattr(data, 'shape', 'N/A')}")
                 #     #     else:
-                #     #         limited_logger.log(f"{key} is None")
+                #     #         # limited_logger.log(f"{key} is None")
                 
             except Exception:
                 if count < 2:
@@ -754,15 +754,19 @@ class _PairDataset(torch.utils.data.Dataset):
                 continue
             
             # if count < 2:
-            #     limited_logger.log("info loaded from str(path)", str(path))
-            #     limited_logger.log("info type", type(info))          
-            #     limited_logger.log("\n\ninfo:\n !!!!", info, "\n\n")
+            #     # limited_logger.log("info loaded from str(path)", str(path))
+            #     # limited_logger.log("info type", type(info))          
+            #     # limited_logger.log("\n\ninfo:\n !!!!", info, "\n\n")
             #     ## Might fail 
-            #     # # limited_logger.log("info.shape", info.shape)
-            #     limited_logger.log("info.keys():", info.keys())
-            #     limited_logger.log("\nIMAGE: ", info["image_paths"],  "\nDEPTH: ",  info["depth_paths"], "\nPOSES: ", info["poses"], "\nINTRINSRICS: ", info["intrinsics"])
+            #     # # # limited_logger.log("info.shape", info.shape)
+            #     # limited_logger.log("info.keys():", info.keys())
+            #     # limited_logger.log("\nIMAGE: ", info["image_paths"],  "\nDEPTH: ",  info["depth_paths"], "\nPOSES: ", info["poses"], "\nINTRINSRICS: ", info["intrinsics"])
             
-            print(info["image_paths"])
+            print(info["poses"].shape)
+            print(info["poses"])
+
+            # print(info["depth_paths"].shape)
+            # print(info["depth_paths"])
 
             self.images[scene] = info["image_paths"]
             self.depths[scene] = info["depth_paths"]
@@ -770,9 +774,9 @@ class _PairDataset(torch.utils.data.Dataset):
             self.intrinsics[scene] = info["intrinsics"] # = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]]) 
             self.scenes.append(scene)
         
-        print("ASCENS: ", self.scenes)
-        # Jusyt  alist of 0000, 0001 etc for both images keys and self.scenes
-        print(self.images.keys())
+        # print("ASCENS: ", self.scenes)
+        # # Jusyt  alist of 0000, 0001 etc for both images keys and self.scenes
+        # print(self.images.keys())
         # print(self.images)
 
         if load_sample:
@@ -783,53 +787,53 @@ class _PairDataset(torch.utils.data.Dataset):
 
     def sample_new_items(self, seed):
         ##  # logger.info("Sampling new %s data with seed %d.", self.split, seed)
-        # limited_logger.log("IN SAMPLE_NEW_ITEMS\n\n")
+        # # limited_logger.log("IN SAMPLE_NEW_ITEMS\n\n")
        #  # logger.info(f"Sampling new items for {self.split} with seed {seed}.")
    
         self.items = []
         split = self.split
         num_per_scene = self.conf[self.split + "_num_per_scene"]
-        # limited_logger.log("num_per_scene", num_per_scene)
+        # # limited_logger.log("num_per_scene", num_per_scene)
         if isinstance(num_per_scene, Iterable):
             num_pos, num_neg = num_per_scene
         else:
             num_pos = num_per_scene
             num_neg = None
-        # limited_logger.log("split", split)
-        # limited_logger.log("num_pos, num_neg", num_pos, num_neg)
-        # # limited_logger.log("self.conf[split + _pairs] ", self.conf[split + "_pairs"] )
+        # # limited_logger.log("split", split)
+        # # limited_logger.log("num_pos, num_neg", num_pos, num_neg)
+        # # # limited_logger.log("self.conf[split + _pairs] ", self.conf[split + "_pairs"] )
 
         if split != "train" and self.conf[split + "_pairs"] is not None:
             # Fixed validation or test pairs
             assert num_pos is None and num_neg is None, "Pairs are pre-defined, no sampling needed."
             # assert num_pos is None
             # assert num_neg is None
-            # limited_logger.log("self.conf.views is 2!: ", self.conf.views)
+            # # limited_logger.log("self.conf.views is 2!: ", self.conf.views)
             assert self.conf.views == 2
             pairs_path = scene_lists_path / self.conf[split + "_pairs"]
-            # limited_logger.log("pairs_path",  pairs_path)
-            # limited_logger.log("pairs_path.read_text.restip...", pairs_path.read_text().rstrip("\n").split("\n"))
+            # # limited_logger.log("pairs_path",  pairs_path)
+            # # limited_logger.log("pairs_path.read_text.restip...", pairs_path.read_text().rstrip("\n").split("\n"))
             count = 0
             for line in pairs_path.read_text().rstrip("\n").split("\n"):
                 # if count < 5 :
-                # limited_logger.log("looping lines - line:", line)
+                # # limited_logger.log("looping lines - line:", line)
                 # count += 1
                 im0, im1 = line.split(" ")
                 scene = im0.split("/")[0]
-                # limited_logger.log("im0, im1, scene", im0, im1, scene)
+                # # limited_logger.log("im0, im1, scene", im0, im1, scene)
                 assert im1.split("/")[0] == scene
                 im0, im1 = [self.conf.image_subpath + im for im in [im0, im1]]
-                # limited_logger.log("after [self.conf.image_subpath + im for im in [im0, im1]]", im0, im1)
+                # # limited_logger.log("after [self.conf.image_subpath + im for im in [im0, im1]]", im0, im1)
                 assert im0 in self.images[scene]
                 assert im1 in self.images[scene]
                 idx0 = np.where(self.images[scene] == im0)[0][0]
                 idx1 = np.where(self.images[scene] == im1)[0][0]
-                # limited_logger.log("idx0, idx1", idx0, idx1)
+                # # limited_logger.log("idx0, idx1", idx0, idx1)
                 self.items.append((scene, idx0, idx1, 1.0))
                 ### I added
                # #  # logger.info(f"Added fixed pair: {scene}, {im0}, {im1}")
         elif self.conf.views == 1:
-            # limited_logger.log("in self.conf views 1... :/")
+            # # limited_logger.log("in self.conf views 1... :/")
             for scene in self.scenes:
                 if scene not in self.images:
                     continue
@@ -845,23 +849,26 @@ class _PairDataset(torch.utils.data.Dataset):
                 self.items.extend(ids)
                #  # logger.info(f"Scene {scene}: {len(ids)} items added.")
         else:
-            # limited_logger.log("in the else block1")
+            # # limited_logger.log("in the else block1")
             for scene in self.scenes:
                 path = self.info_dir / (scene + ".npz")
-                # limited_logger.log("path", path)
+                # # limited_logger.log("path", path)
                 assert path.exists(), f"Info file missing: {path}"
                 # assert path.exists(), path
                 info = np.load(str(path), allow_pickle=True)
-                # limited_logger.log("str(path)", str(path))
+                # # limited_logger.log("str(path)", str(path))
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
                 ind = np.where(valid)[0]
+                print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
+                print( "info[overlap_matrix]", info["overlap_matrix"])
+
                 mat = info["overlap_matrix"][valid][:, valid]
-                # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
+                # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
 
                 if num_pos is not None:
-                    # limited_logger.log("num_pos", num_pos)
+                    # # limited_logger.log("num_pos", num_pos)
                     # Sample a subset of pairs, binned by overlap.
                     num_bins = self.conf.num_overlap_bins
                     assert num_bins > 0
@@ -1178,8 +1185,8 @@ def visualize(args):
 if __name__ == "__main__":
     from .. import logger  # overwrite the logger
    
-    # # limited_logger.log("This message will appear only once.")
-    # # limited_logger.log("This message will appear only once.")
+    # # # limited_logger.log("This message will appear only once.")
+    # # # limited_logger.log("This message will appear only once.")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", type=str, default="val")
