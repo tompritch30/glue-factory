@@ -12,6 +12,8 @@ import PIL.Image
 import torch
 from omegaconf import OmegaConf
 
+import pickle
+
 from ..geometry.wrappers import Camera, Pose
 from ..models.cache_loader import CacheLoader
 from ..settings import DATA_PATH
@@ -20,6 +22,9 @@ from ..utils.tools import fork_rng
 from ..visualization.viz2d import plot_heatmaps, plot_image_grid
 from .base_dataset import BaseDataset
 from .utils import rotate_intrinsics, rotate_pose_inplane, scale_intrinsics
+
+from multiprocessing import Pool
+
 
 logger = logging.getLogger(__name__)
 scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
@@ -106,8 +111,9 @@ def load_scene_data(base_dir, scene):
     # Define file paths for depth, image, and pose data
     depth_file_path = os.path.join(fileListDir, f"depthData_{scene}.txt")
     image_file_path = os.path.join(fileListDir, f"imageData_{scene}.txt")
-    # THIS IS FLOW DATA!! need to be poses!    
-    flow_file_path  = os.path.join(fileListDir, f"poseData_{flow_scene}.txt")
+    # THIS IS FLOW DATA!! need to be poses!  
+    # NEED TO REVIEW THIS FILE NAMING???  
+    flow_file_path  = os.path.join(fileListDir, f"flowData_{flow_scene}.txt")
 
     # Function to read data from a text file and convert to numpy array
     def load_data_from_file(file_path):
@@ -115,6 +121,7 @@ def load_scene_data(base_dir, scene):
             with open(file_path, 'r') as file:
                 return np.array([line.strip() for line in file.readlines()])
         else:
+            print(f"{file_path} no data found")
             return np.array([])  # Return an empty array if file does not exist
 
     # Load data
@@ -158,6 +165,8 @@ def load_scene_data(base_dir, scene):
 
     if os.path.exists(pose_file_path):
         poses = load_poses_from_file(pose_file_path)
+    else:
+        print("pose_file_path not exist", pose_file_path)
 
     length = max(len(depth_data), len(image_data), len(flow_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
@@ -172,6 +181,85 @@ def load_scene_data(base_dir, scene):
         # NEED TO REVIEW IF NEED LEFT AND RIGHT POSES??
     }
 
+def load_npy_file(partial_file_path):
+    base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
+    file_path = os.path.join(base_directory, partial_file_path)
+
+    if os.path.exists(file_path):
+        return np.load(file_path)
+    else:
+        print(f"File not found: {file_path}")
+        return None
+
+def project_points(depth, intrinsics, pose):
+    h, w = depth.shape
+    x, y = np.meshgrid(np.arange(w), np.arange(h))
+    z = depth.flatten()
+
+    x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
+    y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
+    points = np.vstack((x, y, z, np.ones_like(z)))
+
+    transformed_points = pose @ points
+    transformed_points /= transformed_points[2, :]
+
+    x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
+    y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+
+    valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+    return np.count_nonzero(valid), valid.size
+
+                    
+def save_overlap_matrix(data_root, scene_name, overlap_matrix):
+    overlap_matrices_dir = os.path.join(data_root, 'overlappingMatrices')
+    os.makedirs(overlap_matrices_dir, exist_ok=True)
+
+    overlap_file_path = os.path.join(overlap_matrices_dir, f"{scene_name}.npz")
+    print(f"Saving overlap matrix of shape {overlap_matrix.shape} to {overlap_file_path}")
+    np.savez_compressed(overlap_file_path, overlap_matrix=overlap_matrix)
+
+
+def calculate_overlap_for_pair(args):
+    i, j, depth_paths, poses, intrinsics = args
+    depth_i = load_npy_file(depth_paths[i])
+    pose_i = poses[i]
+    depth_j = load_npy_file(depth_paths[j])
+    pose_j = poses[j]
+    
+    if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
+        return i, j, 0.0  # Return 0 overlap if data is missing
+
+    pose = np.linalg.inv(pose_j) @ pose_i
+    count, total = project_points(depth_i, intrinsics[i], pose)
+    overlap = count / total
+    return i, j, overlap
+
+def calculate_overlap_matrix(depth_paths, poses, intrinsics):
+    """Calculates the overlap matrix between frames in parallel.    
+    Args:
+        depth_paths: List of paths to depth maps.
+        poses: List of camera poses.
+        intrinsics: List of camera intrinsics.
+        print_interval: Number of iterations after which to print an overlap value.
+    """
+    num_frames = len(depth_paths)
+    overlap_matrix = np.zeros((num_frames, num_frames))
+    
+    # Prepare arguments for parallel processing
+    pairs = [(i, j, depth_paths, poses, intrinsics) 
+            for i in range(num_frames) for j in range(i + 1, num_frames)]
+    
+    with Pool() as p:  # Use all available CPU cores
+        results = p.map(calculate_overlap_for_pair, pairs)
+
+    # Fill overlap matrix
+    for i, j, overlap in results:
+        overlap_matrix[i, j] = overlap
+        overlap_matrix[j, i] = overlap  # Make symmetric
+        if i % 500 == 0:
+            print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+
+    return overlap_matrix
 
 class _PairDataset(torch.utils.data.Dataset):
     def __init__(self, conf, split, load_sample=True):
@@ -276,6 +364,12 @@ class _PairDataset(torch.utils.data.Dataset):
             # assert len(self.items) > 0
             assert len(self.items) > 0, "No items sampled; check configuration."
 
+        
+
+        with open(scenes, 'wb') as f:
+            pickle.dump(scenes, f)
+
+
 
     def sample_new_items(self, seed):
         # logger.info("Sampling new %s data with seed %d.", self.split, seed)
@@ -348,67 +442,13 @@ class _PairDataset(torch.utils.data.Dataset):
                 if valid:
                     ind = np.where(valid)[0]
                     # print(info.keys())
-                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")                   
                     
-                    def load_npy_file(partial_file_path):
-                        base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
-                        file_path = os.path.join(base_directory, partial_file_path)
-
-                        if os.path.exists(file_path):
-                            return np.load(file_path)
-                        else:
-                            print(f"File not found: {file_path}")
-                            return None
-
-                    def project_points(depth, intrinsics, pose):
-                        h, w = depth.shape
-                        x, y = np.meshgrid(np.arange(w), np.arange(h))
-                        z = depth.flatten()
-
-                        x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
-                        y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
-                        points = np.vstack((x, y, z, np.ones_like(z)))
-
-                        transformed_points = pose @ points
-                        transformed_points /= transformed_points[2, :]
-
-                        x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
-                        y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
-
-                        valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
-                        return np.count_nonzero(valid), valid.size
-
-                    def calculate_overlap_matrix(depth_paths, poses, intrinsics):
-                        num_frames = len(depth_paths)
-                        # print("num_frames", num_frames)
-                        overlap_matrix = np.zeros((num_frames, num_frames))
-
-                        for i in range(num_frames - 1):
-                            for j in range(i + 1, num_frames):                                
-                                depth_paths[i] = str(depth_paths[i])
-                                # pose_paths[i] = str(pose_paths[i])
-                                # print("depth_paths[i]", i, depth_paths[i])
-                                depth_i = load_npy_file(depth_paths[i])
-                                pose_i = poses[i] # load_npy_file(pose_paths[i])
-                                depth_j = load_npy_file(depth_paths[j])
-                                pose_j = poses[j] # load_npy_file(pose_paths[j])
-
-                                if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
-                                    continue
-
-                                pose = np.linalg.inv(pose_j) @ pose_i
-                                count, total = project_points(depth_i, intrinsics[i], pose)
-                                overlap = count / total
-
-                                print(f"Overlap between frame {i} and {j}: {overlap}")
-
-                                overlap_matrix[i, j] = overlap
-                                overlap_matrix[j, i] = overlap
-
-                        return overlap_matrix
 
                     # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
                     overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
+                    # overlap_matrix = np.array([1, 2, 3])
+                    save_overlap_matrix(base_directory, scene, overlap_matrix)
                     info["overlap_matrix"] = overlap_matrix
 
                     print("overlap_matrix", overlap_matrix)
