@@ -540,7 +540,9 @@ from .utils import rotate_intrinsics, rotate_pose_inplane, scale_intrinsics
 logger = logging.getLogger(__name__)
 scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
 
-# python -m gluefactory.train sp+lg_megadepth \ --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml \ train.load_experiment=sp+lg_homography
+"""
+python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
+"""
 
 import logging, threading
 from collections import defaultdict
@@ -665,10 +667,10 @@ class _PairDataset(torch.utils.data.Dataset):
         # limited_logger.log("IN PAIR DATASET INIT\n\n")
 
         # limited_logger.log("pair dataset")
-        limited_logger.log("self.root, self.split, self.conf", self.root, self.split, self.conf)
+        # limited_logger.log("self.root, self.split, self.conf", self.root, self.split, self.conf)
 
         split_conf = conf[split + "_split"]
-        limited_logger.log("split_conf", split_conf)
+        # limited_logger.log("split_conf", split_conf)
 
         if isinstance(split_conf, (str, Path)):
             scenes_path = scene_lists_path / split_conf
@@ -700,36 +702,49 @@ class _PairDataset(torch.utils.data.Dataset):
 
         count = 0
         for scene in scenes:
+            # print("scenes[:10]", scenes[:10])
             if count < 1:
                 limited_logger.log(scene)
             count +=1
             path = self.info_dir / (scene + ".npz")
+            # print("path", path)
+            
             try:
                 info = np.load(str(path), allow_pickle=True)
+                # ### I added
+                # if count == 6:
+                #     # logger.info(f"Loaded scene info for {scene}: {info.keys()}")
+                #     limited_logger.log(f"Loaded info for scene {scene}. Keys: {list(info.keys())}")
+                #     # ['image_paths', 'depth_paths', 'intrinsics', 'poses', 'overlap_matrix', 'scale_ratio_matrix', 'angles', 'n_points3D', 'points3D_id_to_2D', 'points3D_id_to_ndepth']
+                #     """
+                #     image_paths: Paths to image files. [Undistorted_SfM/0012/images/2303158722_39e1c8d583_o.jpg, ...] for each image in dir P001 etc
+                #     depth_paths: Paths to corresponding depth data files. H5!!? [phoenix/S6/zl548/MegaDepth_v1/0012/dense0/depths/2303158722_39e1c8d583_o.h5, ...] for each image in dir P001 etc
+                #     intrinsics: Camera intrinsic parameters. for each image [array([[1.31926e+03, 0.00000e+00, 5.21000e+02], [0.00000e+00, 1.31965e+03, 8.00000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]])] ..]
+                #     poses: Camera poses or transformations. for each iamge: [None array([[ 0.94299385,  0.06705927, -0.32598414,  3.20741   ], [ 0.13619231,  0.81596702,  0.56182691, -1.21774   ],
+                #                                                             [ 0.30366801, -0.57419585,  0.76031892, -1.44514   ], [ 0.        ,  0.        ,  0.        ,  1.        ]])
+                #     overlap_matrix: A matrix showing overlap metrics between different images.
+                #     scale_ratio_matrix, angles, n_points3D, points3D_id_to_2D, points3D_id_to_ndepth: These likely pertain to geometric transformations, alignment metrics, and 3D-to-2D point correspondences used in depth and image processing.
+                #     """
+                #     limited_logger.log("info['image_paths']", info['image_paths'].shape, info['image_paths'])
+                #     limited_logger.log("info['depth_paths']", info['depth_paths'].shape, info['depth_paths'])
+                #     limited_logger.log("info['intrinsics']", info['intrinsics'].shape,info['intrinsics'])
+                #     limited_logger.log("info['poses']", info['poses'].shape, info['poses'])
+                #     ## this stuff likely not needed. 
+                #     # limited_logger.log("info['overlap_matrix']", info['overlap_matrix'].shape, info['overlap_matrix'])
+                #     # limited_logger.log("info['scale_ratio_matrix']", info['scale_ratio_matrix'].shape, info['scale_ratio_matrix'])
+                #     # limited_logger.log("info['angles']", info['angles'].shape, info['angles'])
+                #     # limited_logger.log("info['n_points3D']", info['n_points3D'].shape, info['n_points3D'])
 
-                ### I added
-                if count < 2:
-                    # logger.info(f"Loaded scene info for {scene}: {info.keys()}")
-                    limited_logger.log(f"Loaded info for scene {scene}. Keys: {list(info.keys())}")
-                    # ['image_paths', 'depth_paths', 'intrinsics', 'poses', 'overlap_matrix', 'scale_ratio_matrix', 'angles', 'n_points3D', 'points3D_id_to_2D', 'points3D_id_to_ndepth']
-                    """
-                    image_paths: Paths to image files.
-                    depth_paths: Paths to corresponding depth data files.
-                    intrinsics: Camera intrinsic parameters.
-                    poses: Camera poses or transformations.
-                    overlap_matrix: A matrix showing overlap metrics between different images.
-                    scale_ratio_matrix, angles, n_points3D, points3D_id_to_2D, points3D_id_to_ndepth: These likely pertain to geometric transformations, alignment metrics, and 3D-to-2D point correspondences used in depth and image processing.
-                    """
-
-                    for key in info.keys():
-                        data = info[key]
-                        if data is not None:
-                            limited_logger.log(f"{key}: type={type(data)}, shape={data.shape}")
-                            limited_logger.log(f"Sample data from {key} (first 10 entries): {data[:1]}")  
-                            limited_logger.log(f"^^^^ KEY {key}")  
-                            # limited_logger.log(f"{key}: type={type(data)}, shape={getattr(data, 'shape', 'N/A')}")
-                        else:
-                            limited_logger.log(f"{key} is None")
+                #     # for key in info.keys():
+                #     #     data = info[key]
+                #     #     if data is not None:
+                #     #         limited_logger.log(f"{key}: type={type(data)}, shape={data.shape}")
+                #     #         limited_logger.log(f"Sample data from {key} (first 10 entries): {data[:1]}")  
+                #     #         limited_logger.log(f"^^^^ KEY {key}")  
+                            
+                #     #         # limited_logger.log(f"{key}: type={type(data)}, shape={getattr(data, 'shape', 'N/A')}")
+                #     #     else:
+                #     #         limited_logger.log(f"{key} is None")
                 
             except Exception:
                 if count < 2:
@@ -747,11 +762,18 @@ class _PairDataset(torch.utils.data.Dataset):
             #     limited_logger.log("info.keys():", info.keys())
             #     limited_logger.log("\nIMAGE: ", info["image_paths"],  "\nDEPTH: ",  info["depth_paths"], "\nPOSES: ", info["poses"], "\nINTRINSRICS: ", info["intrinsics"])
             
+            print(info["image_paths"])
+
             self.images[scene] = info["image_paths"]
             self.depths[scene] = info["depth_paths"]
             self.poses[scene] = info["poses"]
-            self.intrinsics[scene] = info["intrinsics"]
+            self.intrinsics[scene] = info["intrinsics"] # = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]]) 
             self.scenes.append(scene)
+        
+        print("ASCENS: ", self.scenes)
+        # Jusyt  alist of 0000, 0001 etc for both images keys and self.scenes
+        print(self.images.keys())
+        # print(self.images)
 
         if load_sample:
             self.sample_new_items(conf.seed)

@@ -24,6 +24,9 @@ from .utils import rotate_intrinsics, rotate_pose_inplane, scale_intrinsics
 logger = logging.getLogger(__name__)
 scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
 
+"""
+python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
+"""
 
 def sample_n(data, num, seed=None):
     if len(data) > num:
@@ -39,7 +42,7 @@ class TreeDepth(BaseDataset):
         "data_dir": "syntheticForestData/",
         "depth_subpath": "depthData/",
         "image_subpath": "imageData/",
-        "info_dir": "poseData/",  # @TODO: intrinsics problem? -- is this required/whta is it for??
+        "info_dir": "fileLists/",  # @TODO: intrinsics problem? -- is this required/whta is it for??
         # Training
         "train_split": "train_scenes_clean.txt",
         "train_num_per_scene": 500,
@@ -79,7 +82,7 @@ class TreeDepth(BaseDataset):
         #     logger.info("Downloading the MegaDepth dataset.")
         #     self.download()
         ### I added
-        #logger.info(f"Initialized TreeDepth dataset with configuration: {conf}")
+        logger.info(f"Initialized TreeDepth dataset with configuration: {conf}")
           
 
     def get_dataset(self, split):
@@ -90,6 +93,41 @@ class TreeDepth(BaseDataset):
         else:
             # print("pairdataset")
             return _PairDataset(self.conf, split)
+
+import os
+
+def load_scene_data(base_dir, scene):
+    # Removing 'L_' or 'R_' for pose files naming
+    pose_scene = scene.replace('_L', '').replace('_R', '')
+    
+    # Define file paths for depth, image, and pose data
+    depth_file_path = os.path.join(base_dir, f"depthData_{scene}.txt")
+    image_file_path = os.path.join(base_dir, f"imageData_{scene}.textView")
+    pose_file_path = os.path.join(base_dir, f"poses_{pose_scene}.txt")
+
+    # Function to read data from a text file and convert to numpy array
+    def load_data_from_file(file_path):
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                return np.array([line.strip() for line in file.readlines()])
+        else:
+            return np.array([])  # Return an empty array if file does not exist
+
+    # Load data
+    depth_data = load_data_from_file(depth_file_path)
+    image_data = load_data_from_file(image_file_path)
+    pose_data = load_data_from_file(pose_file_path)
+
+    length = max(len(depth_data), len(image_data), len(pose_data))
+    K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
+    camera_intrinsics = np.full(length, K)
+
+    return {
+        "image_paths": image_data,
+        "depth_paths": depth_data,
+        "poses": pose_data,
+        "intrinsics" : camera_intrinsics
+    }
 
 
 class _PairDataset(torch.utils.data.Dataset):
@@ -127,24 +165,62 @@ class _PairDataset(torch.utils.data.Dataset):
 
         # load metadata
         self.info_dir = self.root / self.conf.info_dir
+        print("root and info", self.root, self.conf.info_dir)
+        # root /vol/bitbucket/tp4618/SuperGlueThesis/external/glue-factory/data/syntheticForestData
+        #  self.conf.info_dir poseData/
         self.scenes = []
+        count = 0
+        
+        # for every list in the sceneList file 
         for scene in scenes:
-            path = self.info_dir / (scene + ".npz")
-            # print(self.info_dir, scene, path)
-            try:
-                info = np.load(str(path), allow_pickle=True)
-                ### I added
-                #logger.info(f"Loaded scene info for {scene}: {info.keys()}")
-            except Exception:
-                # logger.warning(
-                #     "Cannot load scene info for scene %s at %s.", scene, path
-                # )
-                continue
+            path = self.info_dir / (scene) # + ".npz")
+            if count < 1:
+                print("path", path)
+                # path /vol/bitbucket/tp4618/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists/SFW_E_L_P000
+            
+            # for every line 
+            
+            # try:
+            #     info = np.load(str(path), allow_pickle=True)
+            #     ### I added
+            #     #logger.info(f"Loaded scene info for {scene}: {info.keys()}")
+            # except Exception:
+            #     # logger.warning(
+            #     #     "Cannot load scene info for scene %s at %s.", scene, path
+            #     # )
+            #     continue
+
+            self.scenes.append(scene)
+            # scene = SFW_E_L_P001
+            # Base = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
+            # convert into fileName
+            # depthData_SFW_E_L_P001.txt
+            # imageData_SFW_E_L_P001.txt
+            # Note the lack of L and R
+            # depthData_SFW_E_P001.txt
+            # get full path e.g. "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists/depthData_SFW_E_P000.txt"
+            # make the text file into a numpy array, each row into an item 
+            # it is the equiaaletn value for info["image_paths"]
+
+            """
+            depthData/SF_E_L_P001/000191_left_depth.npy
+            depthData/SF_E_L_P001/000032_left_depth.npy     
+            ...
+            imageData/SF_E_L_P005/000158_left.png
+            imageData/SF_E_L_P005/000255_left.png  
+            ...
+            flowData/SFW_H_P017/000704_000705_flow.npy
+            flowData/SFW_H_P017/001010_001011_flow.npy  
+
+            """
+            # np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
+            base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
+            info = load_scene_data(base_directory, scene)
+            
             self.images[scene] = info["image_paths"]
             self.depths[scene] = info["depth_paths"]
-            self.poses[scene] = info["poses"]
+            self.poses[scene] = info["poses"]            
             self.intrinsics[scene] = info["intrinsics"]
-            self.scenes.append(scene)
 
         if load_sample:
             self.sample_new_items(conf.seed)
