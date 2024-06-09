@@ -266,11 +266,11 @@ class _PairDataset(torch.utils.data.Dataset):
             self.depths[scene] = info["depth_paths"]
             self.poses[scene] = info["poses"]            
             self.intrinsics[scene] = info["intrinsics"]
-            c = 0
-            if c < 1:
-                print("image, depth, pose, intrinsrtic", info["image_paths"].shape, info["depth_paths"].shape, info["poses"].shape, info["intrinsics"].shape, sep="\n")
-                # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
-            c+=1
+            # c = 0
+            # if c < 1:
+            #     print("image, depth, pose, intrinsrtic", info["image_paths"].shape, info["depth_paths"].shape, info["poses"].shape, info["intrinsics"].shape, sep="\n")
+            #     # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+            # c+=1
 
         if load_sample:
             self.sample_new_items(conf.seed)
@@ -332,7 +332,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 # # assert path.exists(), path
                 # info = np.load(str(path), allow_pickle=True)                
             
-                base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
+                base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/"
                 info = load_scene_data(base_directory, scene)
                 # print(scene)
                 # valid = (self.images[scene] != None) & (  # noqa: E711
@@ -344,7 +344,55 @@ class _PairDataset(torch.utils.data.Dataset):
 
                 if valid:
                     ind = np.where(valid)[0]
+                    print(info.keys())
                     print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+                    
+                    def project_points(depth, intrinsics, pose):
+                        # Generate pixel coordinates grid
+                        h, w = depth.shape
+                        x, y = np.meshgrid(np.arange(w), np.arange(h))
+                        z = depth.flatten()
+
+                        # Transform pixel coordinates to camera coordinates
+                        x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
+                        y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
+                        points = np.vstack((x, y, z, np.ones_like(z)))
+
+                        # Apply the pose transformation
+                        transformed_points = pose @ points
+                        transformed_points /= transformed_points[2, :]  # Normalize by z to get homogeneous coordinates
+
+                        # Project back to 2D coordinates using second frame's intrinsics
+                        x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
+                        y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+
+                        # Check if the points are within the image bounds
+                        valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+                        return np.count_nonzero(valid), valid.size
+
+                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
+                    
+                    def calculate_overlap_matrix(depth_maps, poses, intrinsics):
+                        num_frames = len(depth_maps)
+                        overlap_matrix = np.zeros((num_frames, num_logframes)) ##? num log frames
+
+                        for i in range(num_frames - 1):
+                            for j in range(i + 1, num_frames):
+                                # Pose from frame i to j
+                                pose = np.linalg.inv(poses[j]) @ poses[i]
+                                
+                                # Project and calculate overlap
+                                count, total = project_points(depth_maps[i], intrinsics[i], pose)
+                                overlap = count / total  # Compute overlap as a ratio
+                                
+                                overlap_matrix[i, j] = overlap
+                                overlap_matrix[j, i] = overlap  # Assuming symmetry for simplicity
+
+                        return overlap_matrix
+
+                    
+                    overlap_matrix = calculate_overlap_matrix(depth_maps, poses, intrinsics)
+                    
                     mat = info["overlap_matrix"][valid][:, valid]
 
                     if num_pos is not None:

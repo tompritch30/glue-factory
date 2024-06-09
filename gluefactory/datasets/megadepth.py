@@ -784,6 +784,7 @@ class _PairDataset(torch.utils.data.Dataset):
             # assert len(self.items) > 0
             assert len(self.items) > 0, "No items sampled; check configuration."
 
+    
 
     def sample_new_items(self, seed):
         ##  # logger.info("Sampling new %s data with seed %d.", self.split, seed)
