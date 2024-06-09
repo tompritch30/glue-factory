@@ -214,6 +214,9 @@ class _PairDataset(torch.utils.data.Dataset):
 
             """
             # np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
+
+           
+            
             base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
             info = load_scene_data(base_directory, scene)
             
@@ -276,51 +279,64 @@ class _PairDataset(torch.utils.data.Dataset):
                 logger.info(f"Scene {scene}: {len(ids)} items added.")
         else:
             for scene in self.scenes:
-                path = self.info_dir / (scene + ".npz")
-                assert path.exists(), f"Info file missing: {path}"
-                # assert path.exists(), path
-                info = np.load(str(path), allow_pickle=True)
-                valid = (self.images[scene] != None) & (  # noqa: E711
-                    self.depths[scene] != None  # noqa: E711
-                )
-                ind = np.where(valid)[0]
-                mat = info["overlap_matrix"][valid][:, valid]
+                ## Code to replace
+                # path = self.info_dir / (scene + ".npz")
+                # assert path.exists(), f"Info file missing: {path}"
+                # # assert path.exists(), path
+                # info = np.load(str(path), allow_pickle=True)                
+            
+                base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists"
+                info = load_scene_data(base_directory, scene)
+                # print(scene)
+                # valid = (self.images[scene] != None) & (  # noqa: E711
+                #         self.depths[scene] != None  # noqa: E711
+                #     )
+                # except:
+                #     print("failed for: ", scene)
+                valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
 
-                if num_pos is not None:
-                    # Sample a subset of pairs, binned by overlap.
-                    num_bins = self.conf.num_overlap_bins
-                    assert num_bins > 0
-                    bin_width = (
-                        self.conf.max_overlap - self.conf.min_overlap
-                    ) / num_bins
-                    num_per_bin = num_pos // num_bins
-                    pairs_all = []
-                    for k in range(num_bins):
-                        bin_min = self.conf.min_overlap + k * bin_width
-                        bin_max = bin_min + bin_width
-                        pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                        pairs_bin = np.stack(np.where(pairs_bin), -1)
-                        pairs_all.append(pairs_bin)
-                    # Skip bins with too few samples
-                    has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                    num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                    pairs = []
-                    for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                        if keep:
-                            pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                    pairs = np.concatenate(pairs, 0)
+                if valid:
+                    ind = np.where(valid)[0]
+                    mat = info["overlap_matrix"][valid][:, valid]
+
+                    if num_pos is not None:
+                        # Sample a subset of pairs, binned by overlap.
+                        num_bins = self.conf.num_overlap_bins
+                        assert num_bins > 0
+                        bin_width = (
+                            self.conf.max_overlap - self.conf.min_overlap
+                        ) / num_bins
+                        num_per_bin = num_pos // num_bins
+                        pairs_all = []
+                        for k in range(num_bins):
+                            bin_min = self.conf.min_overlap + k * bin_width
+                            bin_max = bin_min + bin_width
+                            pairs_bin = (mat > bin_min) & (mat <= bin_max)
+                            pairs_bin = np.stack(np.where(pairs_bin), -1)
+                            pairs_all.append(pairs_bin)
+                        # Skip bins with too few samples
+                        has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+                        num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+                        pairs = []
+                        for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+                            if keep:
+                                pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+                        pairs = np.concatenate(pairs, 0)
+                    else:
+                        pairs = (mat > self.conf.min_overlap) & (
+                            mat <= self.conf.max_overlap
+                        )
+                        pairs = np.stack(np.where(pairs), -1)
+
+                    pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
+                    if num_neg is not None:
+                        neg_pairs = np.stack(np.where(mat <= 0.0), -1)
+                        neg_pairs = sample_n(neg_pairs, num_neg, seed)
+                        pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
+                    self.items.extend(pairs)
                 else:
-                    pairs = (mat > self.conf.min_overlap) & (
-                        mat <= self.conf.max_overlap
-                    )
-                    pairs = np.stack(np.where(pairs), -1)
-
-                pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
-                if num_neg is not None:
-                    neg_pairs = np.stack(np.where(mat <= 0.0), -1)
-                    neg_pairs = sample_n(neg_pairs, num_neg, seed)
-                    pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
-                self.items.extend(pairs)
+                    print("scene invalid:", scene)
+                
                 ### I added
                 #
                 # logger.info(f"Scene {scene}: {len(pairs)} pairs added.")
