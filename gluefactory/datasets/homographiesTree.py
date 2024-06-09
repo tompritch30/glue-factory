@@ -307,7 +307,7 @@ def visualize(args):
         "prefetch_factor": 1,
     }
     conf = OmegaConf.merge(conf, OmegaConf.from_cli(args.dotlist))
-    dataset = HomographyDataset(conf)
+    dataset = HomographySynthTreeDataset(conf)
     loader = dataset.get_data_loader("train")
     logger.info("The dataset has %d elements.", len(loader))
 
@@ -320,6 +320,7 @@ def visualize(args):
     plot_image_grid(images, dpi=args.dpi)
     plt.tight_layout()
     plt.show()
+
 
 
 if __name__ == "__main__":

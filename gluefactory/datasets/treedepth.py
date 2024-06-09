@@ -79,16 +79,16 @@ class TreeDepth(BaseDataset):
         #     logger.info("Downloading the MegaDepth dataset.")
         #     self.download()
         ### I added
-        logger.info(f"Initialized TreeDepth dataset with configuration: {conf}")
+        #logger.info(f"Initialized TreeDepth dataset with configuration: {conf}")
           
 
     def get_dataset(self, split):
         assert self.conf.views in [1, 2, 3]
         if self.conf.views == 3:
-            print("tripletdataset")
+            # print("tripletdataset")
             return _TripletDataset(self.conf, split)
         else:
-            print("pairdataset")
+            # print("pairdataset")
             return _PairDataset(self.conf, split)
 
 
@@ -99,10 +99,15 @@ class _PairDataset(torch.utils.data.Dataset):
         self.split = split
         self.conf = conf
 
+        # redefine it
+        scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists")
+
         split_conf = conf[split + "_split"]
-        if isinstance(split_conf, (str, Path)):
+        if isinstance(split_conf, (str, Path)):            
             scenes_path = scene_lists_path / split_conf
+            # print("scenes_path", scenes_path)
             scenes = scenes_path.read_text().rstrip("\n").split("\n")
+            # print("scenes", scenes)
         elif isinstance(split_conf, Iterable):
             scenes = list(split_conf)
         else:
@@ -125,14 +130,15 @@ class _PairDataset(torch.utils.data.Dataset):
         self.scenes = []
         for scene in scenes:
             path = self.info_dir / (scene + ".npz")
+            # print(self.info_dir, scene, path)
             try:
                 info = np.load(str(path), allow_pickle=True)
                 ### I added
-                logger.info(f"Loaded scene info for {scene}: {info.keys()}")
+                #logger.info(f"Loaded scene info for {scene}: {info.keys()}")
             except Exception:
-                logger.warning(
-                    "Cannot load scene info for scene %s at %s.", scene, path
-                )
+                # logger.warning(
+                #     "Cannot load scene info for scene %s at %s.", scene, path
+                # )
                 continue
             self.images[scene] = info["image_paths"]
             self.depths[scene] = info["depth_paths"]
@@ -176,7 +182,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 idx1 = np.where(self.images[scene] == im1)[0][0]
                 self.items.append((scene, idx0, idx1, 1.0))
                 ### I added
-                logger.info(f"Added fixed pair: {scene}, {im0}, {im1}")
+                # logger.info(f"Added fixed pair: {scene}, {im0}, {im1}")
         elif self.conf.views == 1:
             for scene in self.scenes:
                 if scene not in self.images:
@@ -240,7 +246,8 @@ class _PairDataset(torch.utils.data.Dataset):
                     pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
                 self.items.extend(pairs)
                 ### I added
-                logger.info(f"Scene {scene}: {len(pairs)} pairs added.")
+                #
+                # logger.info(f"Scene {scene}: {len(pairs)} pairs added.")
         if self.conf.views == 2 and self.conf.sort_by_overlap:
             self.items.sort(key=lambda i: i[-1], reverse=True)
         else:
@@ -249,27 +256,27 @@ class _PairDataset(torch.utils.data.Dataset):
     def _read_view(self, scene, idx):
         path = self.root / self.images[scene][idx]
         ### I added
-        logger.info(f"Reading view from {path}")
+        #logger.info(f"Reading view from {path}")
 
         # read pose data
         K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
         T = self.poses[scene][idx].astype(np.float32, copy=False)
 
         ### I added
-        logger.info(f"Pose data: {K.shape}, {T.shape}")
+        #logger.info(f"Pose data: {K.shape}, {T.shape}")
 
         # read image
         if self.conf.read_image:
             img = load_image(self.root / self.images[scene][idx], self.conf.grayscale)
             ### I added
-            logger.info(f"Loaded image {path.name} with shape {img.shape}")
+            #logger.info(f"Loaded image {path.name} with shape {img.shape}")
         else:
             size = PIL.Image.open(path).size[::-1]
             img = torch.zeros(
                 [3 - 2 * int(self.conf.grayscale), size[0], size[1]]
             ).float()
             ### I added
-            logger.info(f"Created placeholder image with shape {img.shape}")
+            #logger.info(f"Created placeholder image with shape {img.shape}")
 
         # read depth
         if self.conf.read_depth:
@@ -296,7 +303,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 K = rotate_intrinsics(K, img.shape, k + 2)
                 T = rotate_pose_inplane(T, k + 2)
                 ### I added
-                logger.info(f"Applied random rotation: {k * 90} degrees")
+                #logger.info(f"Applied random rotation: {k * 90} degrees")
 
 
         name = path.name
@@ -337,7 +344,7 @@ class _PairDataset(torch.utils.data.Dataset):
 
             data = {"cache": features, **data}
             ### I added
-            logger.info(f"Features loaded and processed for {name}")
+            #logger.info(f"Features loaded and processed for {name}")
 
         return data
 
@@ -365,13 +372,13 @@ class _PairDataset(torch.utils.data.Dataset):
             data["overlap_0to1"] = overlap
             data["name"] = f"{scene}/{data0['name']}_{data1['name']}"
             ### I added
-            logger.info(f"Processed data pair: {data['name']} with overlap {overlap}")
+            #logger.info(f"Processed data pair: {data['name']} with overlap {overlap}")
         else:
             assert self.conf.views == 1
             scene, idx0 = self.items[idx]
             data = self._read_view(scene, idx0)
             ### I added
-            logger.info(f"Processed single view data for {scene}")
+            #logger.info(f"Processed single view data for {scene}")
         data["scene"] = scene
         data["idx"] = idx
         return data
@@ -474,7 +481,7 @@ class _TripletDataset(_PairDataset):
         data["scene"] = scene
         data["name"] = f"{scene}/{data0['name']}_{data1['name']}_{data2['name']}"
         ### I added
-        logger.info(f"Processed triplet: {data['name']} with overlaps {overlap01}, {overlap02}, {overlap12}")
+        #logger.info(f"Processed triplet: {data['name']} with overlaps {overlap01}, {overlap02}, {overlap12}")
     
         return data
 
@@ -495,7 +502,7 @@ def visualize(args):
         "val_num_per_scene": None,
     }
     conf = OmegaConf.merge(conf, OmegaConf.from_cli(args.dotlist))
-    dataset = MegaDepth(conf)
+    dataset = TreeDepth(conf)
     loader = dataset.get_data_loader(args.split)
     logger.info("The dataset has elements.", len(loader))
 
