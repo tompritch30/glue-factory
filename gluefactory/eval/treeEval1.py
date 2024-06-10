@@ -13,36 +13,44 @@ from tqdm import tqdm
 
 from ..datasets import get_dataset
 from ..models.cache_loader import CacheLoader
-from ..settings import DATA_PATH, EVAL_PATH
+from ..settings import DATA_PATH, EVAL_PATH # datapath is data/ .. 
 from ..utils.export_predictions import export_predictions
 from ..visualization.viz2d import plot_cumulative
 from .eval_pipeline import EvalPipeline
 from .io import get_eval_parser, load_model, parse_eval_args
 from .utils import eval_matches_epipolar, eval_poses, eval_relative_pose_robust
 
+""" Test Scenes
+SF_E_L_P007
+SF_H_L_P002
+SF_H_R_P004
+SF_E_L_P008
+SFW_E_L_P003
+SFW_E_L_P009
+SFW_E_R_P005
+"""
+
 logger = logging.getLogger(__name__)
 
-
-class MegaDepth1500Pipeline(EvalPipeline):
+class ForestPipeline(EvalPipeline):
     default_conf = {
         "data": {
-            "name": "image_pairs",
-            "pairs": "megadepth1500/pairs_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  tx ty tz qx qy qz qw
-
-            "root": "megadepth1500/images/",
-            "extra_data": "relative_pose",
+            "name": "forest_pairs",            
+            "pairs": "forest_data/pairs_info.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  tx ty tz qx qy qz qw
+            "root": "syntheticForestData/imageData/SF_E_L_P007",
+            "extra_data": "syntheticForestData/poseData/SF_E_P007",
             "preprocessing": {
-                "side": "long",
+                "normalize": True,
             },
         },
         "model": {
             "ground_truth": {
-                "name": None,  # remove gt matches
-            }
+                "name": None,  # remove gt matches -- HOW TO SPECITY MY MODEL in command line?
+            } 
         },
         "eval": {
             "estimator": "poselib",
-            "ransac_th": 1.0,  # -1 runs a bunch of thresholds and selects the best
+            "ransac_th": 1.0,
         },
     }
 
@@ -57,27 +65,22 @@ class MegaDepth1500Pipeline(EvalPipeline):
         "matching_scores1",
     ]
     optional_export_keys = []
-
+    
     def _init(self, conf):
-        if not (DATA_PATH / "megadepth1500").exists():
-            logger.info("Downloading the MegaDepth-1500 dataset.")
-            url = "https://cvg-data.inf.ethz.ch/megadepth/megadepth1500.zip"
-            zip_path = DATA_PATH / url.rsplit("/", 1)[-1]
-            zip_path.parent.mkdir(exist_ok=True, parents=True)
-            torch.hub.download_url_to_file(url, zip_path)
-            with zipfile.ZipFile(zip_path) as fid:
-                fid.extractall(DATA_PATH)
-            zip_path.unlink()
+        # Ensure the dataset exists
+        if not (DATA_PATH / "syntheticForestData").exists():
+            logger.error("syntheticForestData dataset not found.")
+            raise FileNotFoundError("syntheticForestData dataset directory is missing.")
 
     @classmethod
     def get_dataloader(self, data_conf=None):
-        """Returns a data loader with samples for each eval datapoint"""
+        """Creates a dataloader to load forest dataset images with depth information."""
         data_conf = data_conf if data_conf else self.default_conf["data"]
         dataset = get_dataset(data_conf["name"])(data_conf)
         return dataset.get_data_loader("test")
 
     def get_predictions(self, experiment_dir, model=None, overwrite=False):
-        """Export a prediction file for each eval datapoint"""
+        """Generates predictions for each evaluation data point in the forest dataset."""
         pred_file = experiment_dir / "predictions.h5"
         if not pred_file.exists() or overwrite:
             if model is None:
@@ -151,7 +154,6 @@ class MegaDepth1500Pipeline(EvalPipeline):
 
         return summaries, figures, results
 
-
 if __name__ == "__main__":
     from .. import logger  # overwrite the logger
 
@@ -159,7 +161,7 @@ if __name__ == "__main__":
     parser = get_eval_parser()
     args = parser.parse_intermixed_args()
 
-    default_conf = OmegaConf.create(MegaDepth1500Pipeline.default_conf)
+    default_conf = OmegaConf.create(ForestPipeline.default_conf)
 
     # mingle paths
     output_dir = Path(EVAL_PATH, dataset_name)
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     experiment_dir = output_dir / name
     experiment_dir.mkdir(exist_ok=True)
 
-    pipeline = MegaDepth1500Pipeline(conf)
+    pipeline = ForestPipeline(conf)
     s, f, r = pipeline.run(
         experiment_dir,
         overwrite=args.overwrite,

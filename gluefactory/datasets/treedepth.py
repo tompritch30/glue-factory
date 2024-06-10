@@ -242,6 +242,7 @@ def calculate_overlap_matrix(depth_paths, poses, intrinsics):
         intrinsics: List of camera intrinsics.
         print_interval: Number of iterations after which to print an overlap value.
     """
+    print("calculating overlalping matrix for", depth_paths.shape, poses.shape, intrinsics.shape)
     num_frames = len(depth_paths)
     overlap_matrix = np.zeros((num_frames, num_frames))
     
@@ -304,22 +305,7 @@ class _PairDataset(torch.utils.data.Dataset):
         
         # for every list in the sceneList file 
         for scene in scenes:
-            path = self.info_dir / (scene) # + ".npz")
-            # if count < 1:
-            #     print("path", path)
-                # path /vol/bitbucket/tp4618/SuperGlueThesis/external/glue-factory/data/syntheticForestData/fileLists/SFW_E_L_P000
-            
-            # for every line 
-            
-            # try:
-            #     info = np.load(str(path), allow_pickle=True)
-            #     ### I added
-            #     #logger.info(f"Loaded scene info for {scene}: {info.keys()}")
-            # except Exception:
-            #     # logger.warning(
-            #     #     "Cannot load scene info for scene %s at %s.", scene, path
-            #     # )
-            #     continue
+            path = self.info_dir / (scene) # + ".npz")            
 
             self.scenes.append(scene)
             # scene = SFW_E_L_P001
@@ -359,16 +345,19 @@ class _PairDataset(torch.utils.data.Dataset):
             #     # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")
             # c+=1
 
+        # data_root = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
+        # scene_list_file = os.path.join(data_root, "scene_list.pkl")  # Specify a filename for the pickled data
+        # with open(scene_list_file, 'wb') as f:  # Use 'wb' for binary write mode
+        #     pickle.dump(scenes, f)
+        # print("finished the pickle!!!")
+
         if load_sample:
             self.sample_new_items(conf.seed)
             # assert len(self.items) > 0
             assert len(self.items) > 0, "No items sampled; check configuration."
 
         
-
-        with open(scenes, 'wb') as f:
-            pickle.dump(scenes, f)
-
+       
 
 
     def sample_new_items(self, seed):
