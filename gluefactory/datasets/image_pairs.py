@@ -12,6 +12,8 @@ from ..settings import DATA_PATH
 from ..utils.image import ImagePreprocessor, load_image
 from .base_dataset import BaseDataset
 
+import pickle
+
 # TEMPORARY
 DATA_PATH = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data")
 
@@ -62,16 +64,50 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
         return self
 
     def _read_view(self, name):
+        # error ahdningly for pose files in the iageData folder
+        if "pose" in name:
+            return None
         path = DATA_PATH / self.conf.root / name
         img = load_image(path)
         return self.preprocessor(img)
+    
+   
+    def save_to_pickle(self, file_path):
+        with open(file_path, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"Dataset saved to {file_path}")
 
+    @classmethod
+    def load_from_pickle(cls, file_path):
+        with open(file_path, 'rb') as f:
+            dataset = pickle.load(f)
+        print(f"Dataset loaded from {file_path}")
+        return dataset
+
+    @classmethod
+    def from_pickle_or_create(cls, conf, pickle_file):
+        if Path(pickle_file).exists():
+            print(f"Loading dataset from {pickle_file}")
+            return cls.load_from_pickle(pickle_file)
+        else:
+            print("Creating new dataset")
+            dataset = cls(conf)
+            dataset.save_to_pickle(pickle_file)
+            return dataset
+        
     def __getitem__(self, idx):
         line = self.items[idx]
         pair_data = line.split(" ")
+        # print("pair_data", pair_data)
         name0, name1 = pair_data[:2]
+        # print("name0, name1 passed into read_view", name0, name1)
         data0 = self._read_view(name0)
         data1 = self._read_view(name1)
+
+        # Skip pairs where either view is None
+        if data0 is None or data1 is None:
+            print("SKIPPED: data0, data1", data0, data1)
+            return self.__getitem__((idx + 1) % len(self))
 
         data = {
             "view0": data0,

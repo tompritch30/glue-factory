@@ -11,6 +11,7 @@ import torch
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
+from ..datasets.image_pairs import ImagePairs
 from ..datasets import get_dataset
 from ..models.cache_loader import CacheLoader
 from ..settings import DATA_PATH, EVAL_PATH # datapath is data/ .. 
@@ -90,7 +91,9 @@ class ForestPipeline(EvalPipeline):
         print("DatasetClass", DatasetClass)
         
         # Instantiate the dataset with its configuration
-        dataset = DatasetClass(data_conf)
+        # dataset = DatasetClass(data_conf)
+        dataset = ImagePairs.from_pickle_or_create(data_conf, Path(DATA_PATH) / "image_pairs.pkl")
+        
         print("dataset instance created", dataset)
 
         # dataset = get_dataset(data_conf["name"])(data_conf)
@@ -104,6 +107,23 @@ class ForestPipeline(EvalPipeline):
     def get_predictions(self, experiment_dir, model=None, overwrite=False):
         """Generates predictions for each evaluation data point in the forest dataset."""
         pred_file = experiment_dir / "predictions.h5"
+        
+        def backup_existing_file(file_path):
+            if file_path.exists():
+                backup_path = file_path.with_suffix('.bak')
+                file_path.rename(backup_path)
+                print(f"Existing file {file_path} renamed to {backup_path}")
+
+        # Inside your `treeEval1.py` script before `export_predictions` is called
+        pred_file = experiment_dir / "predictions.h5"
+        if pred_file.exists() and overwrite:
+            backup_existing_file(pred_file)
+                
+        # # I added
+        # import os
+        # if pred_file.exists() and overwrite:
+        #     os.remove(pred_file)
+
         if not pred_file.exists() or overwrite:
             if model is None:
                 model = load_model(self.conf.model, self.conf.checkpoint)

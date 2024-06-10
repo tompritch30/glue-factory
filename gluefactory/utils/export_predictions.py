@@ -70,10 +70,14 @@ def export_predictions(
                     pred[k] = pred[k].astype(np.float16)
         try:
             name = data["name"][0]
+            if name in hfile:
+                print(f"Warning: Group {name} already exists in {output_file}. Skipping...")
+                continue
             grp = hfile.create_group(name)
             for k, v in pred.items():
                 grp.create_dataset(k, data=v)
-        except RuntimeError:
+        except RuntimeError as e:
+            print(f"Error creating group for {name}: {e}")
             continue
 
         del pred
