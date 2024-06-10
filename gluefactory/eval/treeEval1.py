@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class ForestPipeline(EvalPipeline):
     default_conf = {
         "data": {
-            "name": "HomographySynthTreeDataset",    # this is a python file!!!  image_pairs likely will need to rewrite
+            "name": "HomogTreePairs",    # this is a python file!!!  image_pairs likely will need to rewrite
             "pairs": "syntheticForestData/pairs_info_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
             "root": "syntheticForestData/imageData/SF_E_L_P007",
             "extra_data": "syntheticForestData/poseData/SF_E_P007",
@@ -81,7 +81,18 @@ class ForestPipeline(EvalPipeline):
     def get_dataloader(self, data_conf=None):
         """Creates a dataloader to load forest dataset images with depth information."""
         data_conf = data_conf if data_conf else self.default_conf["data"]
-        dataset = get_dataset(data_conf["name"])(data_conf)
+        # dataset = get_dataset(data_conf["name"])(data_conf)
+        # Fetch the correct dataset class based on the name
+        DatasetClass = get_dataset(data_conf["name"])
+        print("DatasetClass", DatasetClass)
+        
+        # Instantiate the dataset with its configuration
+        dataset = DatasetClass(data_conf)
+        print("dataset instance created", dataset)
+
+        # dataset = get_dataset(data_conf["name"])(data_conf)
+
+        # dataset = get_dataset('HomographySynthTreeDataset')('gluefactory.datasets.homographiesTree')
         return dataset.get_data_loader("test")
         # make a class that inherits from baseDataSet and then has method get_data_loader where pass string "test"
         #     data_conf[name] image_pairs

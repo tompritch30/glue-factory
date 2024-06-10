@@ -27,7 +27,11 @@ python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_megadepth
 python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_homography
 """
 # --overwriet if doing it as new
-
+"""
+(GlueFactory) tp4618@gpu03:glue-factory$ python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_homography --debug
+usage: megadepth1500.py [-h] [--tag TAG] [--checkpoint CHECKPOINT] [--conf CONF] [--overwrite] [--overwrite_eval] [--plot]
+                        [dotlist ...]
+"""
 
 class MegaDepth1500Pipeline(EvalPipeline):
     default_conf = {
