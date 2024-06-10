@@ -37,15 +37,18 @@ and --overwrite if new configs
 
 logger = logging.getLogger(__name__)
 
+# TEMPORARY
+DATA_PATH = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data")
+
 class ForestPipeline(EvalPipeline):
     default_conf = {
         "data": {
-            "name": "HomogTreePairs",    # this is a python file!!!  image_pairs likely will need to rewrite
+            "name": "image_pairs",    # this is a python file!!!  image_pairs likely will need to rewrite
             "pairs": "syntheticForestData/pairs_info_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
-            "root": "syntheticForestData/imageData/SF_E_L_P007",
-            "extra_data": "syntheticForestData/poseData/SF_E_P007",
+            "root": "syntheticForestData/imageData/",
+            "extra_data": "poseData/SF_E_P007",
             "preprocessing": {
-                "normalize": True,
+                "side": "long",
             },
         },
         "model": {

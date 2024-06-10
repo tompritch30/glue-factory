@@ -12,6 +12,9 @@ from ..settings import DATA_PATH
 from ..utils.image import ImagePreprocessor, load_image
 from .base_dataset import BaseDataset
 
+# TEMPORARY
+DATA_PATH = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data")
+
 
 def names_to_pair(name0, name1, separator="/"):
     return separator.join((name0.replace("/", "-"), name1.replace("/", "-")))
