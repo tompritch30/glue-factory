@@ -30,13 +30,18 @@ SFW_E_L_P009
 SFW_E_R_P005
 """
 
+"""
+python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_megadepth
+and --overwrite if new configs
+"""
+
 logger = logging.getLogger(__name__)
 
 class ForestPipeline(EvalPipeline):
     default_conf = {
         "data": {
-            "name": "forest_pairs",            
-            "pairs": "forest_data/pairs_info.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  tx ty tz qx qy qz qw
+            "name": "HomographySynthTreeDataset",    # this is a python file!!!  image_pairs likely will need to rewrite
+            "pairs": "syntheticForestData/pairs_info_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
             "root": "syntheticForestData/imageData/SF_E_L_P007",
             "extra_data": "syntheticForestData/poseData/SF_E_P007",
             "preprocessing": {
@@ -78,6 +83,9 @@ class ForestPipeline(EvalPipeline):
         data_conf = data_conf if data_conf else self.default_conf["data"]
         dataset = get_dataset(data_conf["name"])(data_conf)
         return dataset.get_data_loader("test")
+        # make a class that inherits from baseDataSet and then has method get_data_loader where pass string "test"
+        #     data_conf[name] image_pairs
+        # data_conf {'name': 'image_pairs', 'pairs': 'megadepth1500/pairs_calibrated.txt', 'root': 'megadepth1500/images/', 'extra_data': 'relative_pose', 'preprocessing': {'side': 'long'}}
 
     def get_predictions(self, experiment_dir, model=None, overwrite=False):
         """Generates predictions for each evaluation data point in the forest dataset."""
@@ -92,6 +100,7 @@ class ForestPipeline(EvalPipeline):
                 keys=self.export_keys,
                 optional_keys=self.optional_export_keys,
             )
+            print(f"in get prediction called get_dataloader with {self.conf.data}")
         return pred_file
 
     def run_eval(self, loader, pred_file):

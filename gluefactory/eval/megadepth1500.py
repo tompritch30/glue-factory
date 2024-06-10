@@ -22,13 +22,18 @@ from .utils import eval_matches_epipolar, eval_poses, eval_relative_pose_robust
 
 logger = logging.getLogger(__name__)
 
+"""
+python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_megadepth
+python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_homography
+"""
+# --overwriet if doing it as new
+
 
 class MegaDepth1500Pipeline(EvalPipeline):
     default_conf = {
-        "data": {
-            "name": "image_pairs",
+        "data": { 
+            "name": "image_pairs",         
             "pairs": "megadepth1500/pairs_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  tx ty tz qx qy qz qw
-
             "root": "megadepth1500/images/",
             "extra_data": "relative_pose",
             "preprocessing": {
@@ -72,9 +77,21 @@ class MegaDepth1500Pipeline(EvalPipeline):
     @classmethod
     def get_dataloader(self, data_conf=None):
         """Returns a data loader with samples for each eval datapoint"""
-        data_conf = data_conf if data_conf else self.default_conf["data"]
+        data_conf = data_conf if data_conf else self.default_conf["data"]   
+        print("\n\n\n")     
+        print("data_conf[name]", data_conf["name"])
+        print("data_conf", data_conf)
         dataset = get_dataset(data_conf["name"])(data_conf)
-        return dataset.get_data_loader("test")
+        print("type(dataset)", type(dataset))
+        try:
+            dataset.shape
+        except:
+            print("dataset no .shape attr")
+        # get_data_loader defined in base_dataset.py == need the dataset returned to be of homographiesTree
+        # HomographySynthTreeDataset -- class so then has the method. 
+        test_data = dataset.get_data_loader("test")
+        print("test_data", test_data)
+        return test_data
 
     def get_predictions(self, experiment_dir, model=None, overwrite=False):
         """Export a prediction file for each eval datapoint"""
@@ -89,6 +106,7 @@ class MegaDepth1500Pipeline(EvalPipeline):
                 keys=self.export_keys,
                 optional_keys=self.optional_export_keys,
             )
+            print(f"in get prediction called get_dataloader with {self.conf.data}")
         return pred_file
 
     def run_eval(self, loader, pred_file):
