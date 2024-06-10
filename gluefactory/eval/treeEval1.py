@@ -47,7 +47,7 @@ class ForestPipeline(EvalPipeline):
             "name": "image_pairs",    # this is a python file!!!  image_pairs likely will need to rewrite
             "pairs": "syntheticForestData/pairs_info_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
             "root": "syntheticForestData/imageData/",
-            "extra_data": None, # "poseData/SF_E_P007",
+            "extra_data": "relative_pose", # "poseData/SF_E_P007",
             "preprocessing": {
                 "side": "long",
             },
@@ -92,7 +92,8 @@ class ForestPipeline(EvalPipeline):
         
         # Instantiate the dataset with its configuration
         # dataset = DatasetClass(data_conf)
-        dataset = ImagePairs.from_pickle_or_create(data_conf, Path(DATA_PATH) / "image_pairs.pkl")
+        print(str(DATA_PATH) + "/image_pairs.pkl")
+        dataset = ImagePairs.from_pickle_or_create(data_conf, DATA_PATH / "image_pairs.pkl")
         
         print("dataset instance created", dataset)
 

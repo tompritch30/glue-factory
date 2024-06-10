@@ -39,7 +39,7 @@ class MegaDepth1500Pipeline(EvalPipeline):
             "name": "image_pairs",         
             "pairs": "megadepth1500/pairs_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  tx ty tz qx qy qz qw
             "root": "megadepth1500/images/",
-            "extra_data": "relative_pose",
+            "extra_data": "relative_pose", # relative_pose, homography
             "preprocessing": {
                 "side": "long",
             },
