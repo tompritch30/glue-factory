@@ -45,7 +45,8 @@ class ForestPipeline(EvalPipeline):
     default_conf = {
         "data": {
             "name": "image_pairs",    # this is a python file!!!  image_pairs likely will need to rewrite
-            "pairs": "syntheticForestData/pairs_info_calibrated.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
+            "pairs": "syntheticForestData/pairs_info_calibrated_3x3.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
+            # bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/pairs_info_calibrated_3x3.txt
             "root": "syntheticForestData/imageData/",
             "extra_data": "relative_pose", # "poseData/SF_E_P007",
             "preprocessing": {

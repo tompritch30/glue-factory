@@ -38,6 +38,10 @@ def parse_camera(calib_elems) -> Camera:
 
 def parse_relative_pose(pose_elems) -> Pose:
     # assert len(calib_list) == 9
+    if len(pose_elems) != 12:
+        raise ValueError(f"Expected 12 elements for pose, got {len(pose_elems)}: {pose_elems}")   
+    # print(f"in parse_relative_pose the pose_elems is {pose_elems} and len is {len(pose_elems)}")
+    
     R, t = pose_elems[:9], pose_elems[9:12]
     R = np.array([float(x) for x in R]).reshape(3, 3).astype(np.float32)
     t = np.array([float(x) for x in t]).astype(np.float32)
@@ -87,14 +91,14 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
     @classmethod
     def from_pickle_or_create(cls, conf, pickle_file):
         print("pickle_file", pickle_file)
-        if Path(pickle_file).exists():
-            print(f"Loading dataset from {pickle_file}")
-            return cls.load_from_pickle(pickle_file)
-        else:
-            print("Creating new dataset")
-            dataset = cls(conf)
-            dataset.save_to_pickle(pickle_file)
-            return dataset
+        # if Path(pickle_file).exists():
+        #     print(f"Loading dataset from {pickle_file}")
+        #     return cls.load_from_pickle(pickle_file)
+        # else:
+        print("Creating new dataset")
+        dataset = cls(conf)
+        dataset.save_to_pickle(pickle_file)
+        return dataset
         
     def __getitem__(self, idx):
         line = self.items[idx]
@@ -104,6 +108,10 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
         # print("name0, name1 passed into read_view", name0, name1)
         data0 = self._read_view(name0)
         data1 = self._read_view(name1)
+
+        # print(f"Total elements in pair_data: {len(pair_data)}")
+        # print("pair_data", pair_data)
+        # print("\npair_data[2:11], pair_data[11:20], pair_data[20:32]", pair_data[2:11], pair_data[11:20], pair_data[20:32], sep="\n")
 
         """
         check the pair_Data is correct, the number of rows positioning of everyting etc
@@ -132,14 +140,15 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
             # print("data.keys",data.keys)
             # print("data",data)
             # print("\n\nnpair_data:\n", pair_data, "\n\n")
+            # print(pair_data[2:11], pair_data[11:20], pair_data[20:32])
 
-            print("parse_camera(pair_data[2:11]).scale(data0[scales])", parse_camera(pair_data[2:11]).scale(
-                data0["scales"]
-            ))
-            print("parse_camera(pair_data[11:20]).scale(data0[scales])", parse_camera(pair_data[11:20]).scale(
-                data0["scales"]
-            ))
-            print("assign t_0to1 as", parse_relative_pose(pair_data[20:32]))
+            # print("\n\n\n parse_camera(pair_data[2:11]).scale(data0[scales])", parse_camera(pair_data[2:11]).scale(
+            #     data0["scales"]
+            # ))
+            # print("parse_camera(pair_data[11:20]).scale(data0[scales])", parse_camera(pair_data[11:20]).scale(
+            #     data0["scales"]
+            # ))
+            # print("assign t_0to1 as", parse_relative_pose(pair_data[20:32]))
 
             data["view0"]["camera"] = parse_camera(pair_data[2:11]).scale(
                 data0["scales"]
