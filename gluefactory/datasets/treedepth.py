@@ -31,6 +31,7 @@ scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
 
 """
 python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
+python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 """
 
 def sample_n(data, num, seed=None):
@@ -435,9 +436,20 @@ class _PairDataset(torch.utils.data.Dataset):
                     
 
                     # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
-                    overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
-                    # overlap_matrix = np.array([1, 2, 3])
-                    save_overlap_matrix(base_directory, scene, overlap_matrix)
+                    # overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
+                    # # overlap_matrix = np.array([1, 2, 3])
+                    # save_overlap_matrix(base_directory, scene, overlap_matrix)
+                    b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
+                    def load_overlap_matrix(base_directory, scene):
+                        # Construct the filename for the overlap matrix
+                        filename = os.path.join(base_directory, scene + ".npz")
+
+                        # Load the overlap matrix from the file
+                        data = np.load(filename)
+                        overlap_matrix = data['overlap_matrix']
+                        print(f"Loaded overlap matrix for {scene} from file.")
+                        return overlap_matrix
+                    overlap_matrix = load_overlap_matrix(b_dir, scene)
                     info["overlap_matrix"] = overlap_matrix
 
                     print("overlap_matrix", overlap_matrix)
