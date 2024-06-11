@@ -48,7 +48,7 @@ class ForestPipeline(EvalPipeline):
             "pairs": "syntheticForestData/pairs_info_calibrated_3x3.txt", # is e.g. SF_E_R_P001/filename.jpg  SF_E_R_P001/filename.jpg intrinsic1 intrinsic2  poses: tx ty tz qx qy qz qw
             # bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/pairs_info_calibrated_3x3.txt
             "root": "syntheticForestData/imageData/",
-            "extra_data": "relative_pose", # "poseData/SF_E_P007",
+            "extra_data": "homography", # "poseData/SF_E_P007", # relative_pose, c
             "preprocessing": {
                 "side": "long",
             },
@@ -89,14 +89,14 @@ class ForestPipeline(EvalPipeline):
         # dataset = get_dataset(data_conf["name"])(data_conf)
         # Fetch the correct dataset class based on the name
         DatasetClass = get_dataset(data_conf["name"])
-        print("DatasetClass", DatasetClass)
+        # print("DatasetClass", DatasetClass)
         
         # Instantiate the dataset with its configuration
         # dataset = DatasetClass(data_conf)
-        print(str(DATA_PATH) + "/image_pairs.pkl")
+        # print(str(DATA_PATH) + "/image_pairs.pkl")
         dataset = ImagePairs.from_pickle_or_create(data_conf, DATA_PATH / "image_pairs.pkl")
         
-        print("dataset instance created", dataset)
+        # print("dataset instance created", dataset)
 
         # dataset = get_dataset(data_conf["name"])(data_conf)
 
@@ -114,7 +114,7 @@ class ForestPipeline(EvalPipeline):
             if file_path.exists():
                 backup_path = file_path.with_suffix('.bak')
                 file_path.rename(backup_path)
-                print(f"Existing file {file_path} renamed to {backup_path}")
+                # print(f"Existing file {file_path} renamed to {backup_path}")
 
         # Inside your `treeEval1.py` script before `export_predictions` is called
         pred_file = experiment_dir / "predictions.h5"
@@ -136,7 +136,7 @@ class ForestPipeline(EvalPipeline):
                 keys=self.export_keys,
                 optional_keys=self.optional_export_keys,
             )
-            print(f"in get prediction called get_dataloader with {self.conf.data}")
+            # print(f"in get prediction called get_dataloader with {self.conf.data}")
         return pred_file
 
     def run_eval(self, loader, pred_file):

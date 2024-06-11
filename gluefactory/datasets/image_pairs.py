@@ -41,7 +41,7 @@ def parse_relative_pose(pose_elems) -> Pose:
     if len(pose_elems) != 12:
         raise ValueError(f"Expected 12 elements for pose, got {len(pose_elems)}: {pose_elems}")   
     # print(f"in parse_relative_pose the pose_elems is {pose_elems} and len is {len(pose_elems)}")
-    
+
     R, t = pose_elems[:9], pose_elems[9:12]
     R = np.array([float(x) for x in R]).reshape(3, 3).astype(np.float32)
     t = np.array([float(x) for x in t]).astype(np.float32)
@@ -136,7 +136,21 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
         }
         # if self.conf.extra_data == "relative_pose":
         # TEMPORARY TO ENSURE IT RUNS
-        if True:
+        if self.conf.extra_data == "homography":
+            # print("homography mode", data1["transform"]
+            #     @ parse_homography(pair_data[2:11])
+            #     @ np.linalg.inv(data0["transform"])
+            # )
+
+            print("data1[transform]", data1["transform"])
+            print("data0[transform]", data0["transform"])
+            data["H_0to1"] = (
+                data1["transform"]
+                @ parse_homography(pair_data[2:11])
+                @ np.linalg.inv(data0["transform"])
+            )
+        # DEFAULY IS USING RELATIVE_POSE
+        else: 
             # print("data.keys",data.keys)
             # print("data",data)
             # print("\n\nnpair_data:\n", pair_data, "\n\n")
@@ -157,22 +171,10 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
                 data1["scales"]
             )
             data["T_0to1"] = parse_relative_pose(pair_data[20:32])
-
-        elif self.conf.extra_data == "homography":
-            print("homography mode", data1["transform"]
-                @ parse_homography(pair_data[2:11])
-                @ np.linalg.inv(data0["transform"])
-            )
-
-            data["H_0to1"] = (
-                data1["transform"]
-                @ parse_homography(pair_data[2:11])
-                @ np.linalg.inv(data0["transform"])
-            )
-        else:
-            assert (
-                self.conf.extra_data is None
-            ), f"Unknown extra data format {self.conf.extra_data}"
+        # else:
+        #     assert (
+        #         self.conf.extra_data is None
+        #     ), f"Unknown extra data format {self.conf.extra_data}"
 
         data["name"] = names_to_pair(name0, name1)
         return data

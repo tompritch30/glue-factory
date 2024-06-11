@@ -10,20 +10,36 @@ from ..utils.tensor import index_batch
 from ..utils.tools import AUCMetric
 
 
-def check_keys_recursive(d, pattern):
-    print("in utils:")
-    print("d", d)
-    print("pattern", pattern)
-    try:
-        print("d.keys", d.keys)
-        print("pattern.keys", pattern.keys)
-    except:
-        print("couldnt do d.eys or pattern..keys")
+# Original code
+# def check_keys_recursive(d, pattern):
+#     # print("in utils:")
+#     # print("d", d)
+#     # print("pattern", pattern)
+#     # try:
+#     #     print("d.keys", d.keys)
+#     #     print("pattern.keys", pattern.keys)
+#     # except:
+#     #     print("couldnt do d.eys or pattern..keys")
+#     if isinstance(pattern, dict):
+#         {check_keys_recursive(d[k], v) for k, v in pattern.items()}
+#     else:
+#         for k in pattern:
+#             assert k in d.keys()
+
+def check_keys_recursive(d, pattern, parent_key=''):
+    # This function checks if all keys in the pattern list exist in dictionary d
     if isinstance(pattern, dict):
-        {check_keys_recursive(d[k], v) for k, v in pattern.items()}
-    else:
-        for k in pattern:
-            assert k in d.keys()
+        for key, sub_pattern in pattern.items():
+            if key in d:
+                check_keys_recursive(d[key], sub_pattern, parent_key=f"{parent_key}.{key}")
+            else:
+                print(f"Missing key: {parent_key}.{key}")
+    elif isinstance(pattern, list):
+        for key in pattern:
+            if key not in d:
+                print(f"Missing key: {parent_key}.{key}")
+            else:
+                print(f"Key found: {parent_key}.{key}")
 
 
 def get_matches_scores(kpts0, kpts1, matches0, mscores0):
