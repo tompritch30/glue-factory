@@ -133,50 +133,69 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
         data = {
             "view0": data0,
             "view1": data1,
+            "name": names_to_pair(name0, name1)
         }
+
+         # Always compute camera regardless of extra data configuration
+        data["view0"]["camera"] = parse_camera(pair_data[2:11]).scale(data0.get("scales", 1))
+        data["view1"]["camera"] = parse_camera(pair_data[11:20]).scale(data1.get("scales", 1))
+        data["T_0to1"] = parse_relative_pose(pair_data[20:32])
+        data["H_0to1"] = data1["transform"] @ parse_homography(pair_data[2:11]) @ np.linalg.inv(data0["transform"])
+
+        # # Check configuration for additional data requirements
         # if self.conf.extra_data == "relative_pose":
-        # TEMPORARY TO ENSURE IT RUNS
-        if self.conf.extra_data == "homography":
-            # print("homography mode", data1["transform"]
-            #     @ parse_homography(pair_data[2:11])
-            #     @ np.linalg.inv(data0["transform"])
-            # )
+        #     print("\n\nRELATIVE_POSE\n\n")
+            
+        # elif self.conf.extra_data == "homography":
+        #     print("\n\HOMOGRAPHY\n\n")
+            
 
-            print("data1[transform]", data1["transform"])
-            print("data0[transform]", data0["transform"])
-            data["H_0to1"] = (
-                data1["transform"]
-                @ parse_homography(pair_data[2:11])
-                @ np.linalg.inv(data0["transform"])
-            )
-        # DEFAULY IS USING RELATIVE_POSE
-        else: 
-            # print("data.keys",data.keys)
-            # print("data",data)
-            # print("\n\nnpair_data:\n", pair_data, "\n\n")
-            # print(pair_data[2:11], pair_data[11:20], pair_data[20:32])
+        """
+        PREVIOUS CODE
+        # # if self.conf.extra_data == "relative_pose":
+        # # TEMPORARY TO ENSURE IT RUNS
+        # if self.conf.extra_data == "homography":
+        #     # print("homography mode", data1["transform"]
+        #     #     @ parse_homography(pair_data[2:11])
+        #     #     @ np.linalg.inv(data0["transform"])
+        #     # )
 
-            # print("\n\n\n parse_camera(pair_data[2:11]).scale(data0[scales])", parse_camera(pair_data[2:11]).scale(
-            #     data0["scales"]
-            # ))
-            # print("parse_camera(pair_data[11:20]).scale(data0[scales])", parse_camera(pair_data[11:20]).scale(
-            #     data0["scales"]
-            # ))
-            # print("assign t_0to1 as", parse_relative_pose(pair_data[20:32]))
+        #     print("data1[transform]", data1["transform"])
+        #     print("data0[transform]", data0["transform"])
+        #     data["H_0to1"] = (
+        #         data1["transform"]
+        #         @ parse_homography(pair_data[2:11])
+        #         @ np.linalg.inv(data0["transform"])
+        #     )
+        # # DEFAULY IS USING RELATIVE_POSE
+        # else: 
+        #     # print("data.keys",data.keys)
+        #     # print("data",data)
+        #     # print("\n\nnpair_data:\n", pair_data, "\n\n")
+        #     # print(pair_data[2:11], pair_data[11:20], pair_data[20:32])
 
-            data["view0"]["camera"] = parse_camera(pair_data[2:11]).scale(
-                data0["scales"]
-            )
-            data["view1"]["camera"] = parse_camera(pair_data[11:20]).scale(
-                data1["scales"]
-            )
-            data["T_0to1"] = parse_relative_pose(pair_data[20:32])
-        # else:
-        #     assert (
-        #         self.conf.extra_data is None
-        #     ), f"Unknown extra data format {self.conf.extra_data}"
+        #     # print("\n\n\n parse_camera(pair_data[2:11]).scale(data0[scales])", parse_camera(pair_data[2:11]).scale(
+        #     #     data0["scales"]
+        #     # ))
+        #     # print("parse_camera(pair_data[11:20]).scale(data0[scales])", parse_camera(pair_data[11:20]).scale(
+        #     #     data0["scales"]
+        #     # ))
+        #     # print("assign t_0to1 as", parse_relative_pose(pair_data[20:32]))
 
-        data["name"] = names_to_pair(name0, name1)
+        #     data["view0"]["camera"] = parse_camera(pair_data[2:11]).scale(
+        #         data0["scales"]
+        #     )
+        #     data["view1"]["camera"] = parse_camera(pair_data[11:20]).scale(
+        #         data1["scales"]
+        #     )
+        #     data["T_0to1"] = parse_relative_pose(pair_data[20:32])
+        # # else:
+        # #     assert (
+        # #         self.conf.extra_data is None
+        # #     ), f"Unknown extra data format {self.conf.extra_data}"
+
+        # data["name"] = names_to_pair(name0, name1)
+        """
         return data
 
     def __len__(self):
