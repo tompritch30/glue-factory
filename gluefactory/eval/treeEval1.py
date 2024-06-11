@@ -32,7 +32,7 @@ SFW_E_R_P005
 """
 
 """
-python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_megadepth
+python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_megadepth --overwrite
 and --overwrite if new configs
 """
 

@@ -11,6 +11,14 @@ from ..utils.tools import AUCMetric
 
 
 def check_keys_recursive(d, pattern):
+    print("in utils:")
+    print("d", d)
+    print("pattern", pattern)
+    try:
+        print("d.keys", d.keys)
+        print("pattern.keys", pattern.keys)
+    except:
+        print("couldnt do d.eys or pattern..keys")
     if isinstance(pattern, dict):
         {check_keys_recursive(d[k], v) for k, v in pattern.items()}
     else:

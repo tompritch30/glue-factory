@@ -99,7 +99,7 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
     def __getitem__(self, idx):
         line = self.items[idx]
         pair_data = line.split(" ")
-        print("\n\nnpair_data:\n", pair_data, "\n\n")
+        # print("\n\nnpair_data:\n", pair_data, "\n\n")
         name0, name1 = pair_data[:2]
         # print("name0, name1 passed into read_view", name0, name1)
         data0 = self._read_view(name0)
@@ -111,7 +111,7 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
         find source of key error
         """
 
-        print(data0, data1)
+        # print(data0, data1)
         # try:
         #     print("data0.keys, data1.keys",data0.keys, data1.keys)
         # except:
@@ -126,10 +126,12 @@ class ImagePairs(BaseDataset, torch.utils.data.Dataset):
             "view0": data0,
             "view1": data1,
         }
-        if self.conf.extra_data == "relative_pose":
+        # if self.conf.extra_data == "relative_pose":
+        # TEMPORARY TO ENSURE IT RUNS
+        if True:
             # print("data.keys",data.keys)
             # print("data",data)
-            print("\n\nnpair_data:\n", pair_data, "\n\n")
+            # print("\n\nnpair_data:\n", pair_data, "\n\n")
 
             print("parse_camera(pair_data[2:11]).scale(data0[scales])", parse_camera(pair_data[2:11]).scale(
                 data0["scales"]
