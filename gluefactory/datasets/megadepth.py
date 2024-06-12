@@ -862,11 +862,11 @@ class _PairDataset(torch.utils.data.Dataset):
                     self.depths[scene] != None  # noqa: E711
                 )
                 ind = np.where(valid)[0]
-                print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
-                print( "info[overlap_matrix]", info["overlap_matrix"])
+                #print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
+                #print( "info[overlap_matrix]", info["overlap_matrix"])
 
                 mat = info["overlap_matrix"][valid][:, valid]
-                print("mat", mat)
+                #print("mat", mat)
                 # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
 
                 if num_pos is not None:
@@ -899,7 +899,7 @@ class _PairDataset(torch.utils.data.Dataset):
                     )
                     pairs = np.stack(np.where(pairs), -1)
 
-                print(f"\n\ninput to megadepth pairs is {pairs}")
+                #print(f"\n\ninput to megadepth pairs is {pairs}")
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)
@@ -917,7 +917,11 @@ class _PairDataset(torch.utils.data.Dataset):
         path = self.root / self.images[scene][idx]
         ### I added
        #  # logger.info(f"Reading view from {path}")
-
+        print("path, self.root , self.images[scene][idx]", path, self.root , self.images[scene][idx])
+        # read pose data
+        print("scene, idx", scene, idx)
+        print("self.intrinsics[scene][idx].shape", self.intrinsics[scene][idx].shape)
+        print("self.poses[scene][idx].shape", self.poses[scene][idx].shape)
         # read pose data
         K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
         T = self.poses[scene][idx].astype(np.float32, copy=False)

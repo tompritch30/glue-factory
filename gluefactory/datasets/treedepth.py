@@ -382,9 +382,9 @@ class _PairDataset(torch.utils.data.Dataset):
             # assert num_neg is None
             assert self.conf.views == 2
             pairs_path = scene_lists_path / self.conf[split + "_pairs"]
-            print(f"the pairs path used is: {pairs_path}")
+            # print(f"the pairs path used is: {pairs_path}")
             for line in pairs_path.read_text().rstrip("\n").split("\n"):
-                print(f"the line used for im0 and im1 is {line}")
+                # print(f"the line used for im0 and im1 is {line}")
                 im0, im1 = line.split(" ")
                 scene = im0.split("/")[0]
                 assert im1.split("/")[0] == scene
@@ -487,11 +487,11 @@ class _PairDataset(torch.utils.data.Dataset):
                     continue 
                 # overlap_matrix = load_overlap_matrix(b_dir, scene)
                 info["overlap_matrix"] = overlap_matrix
-                print("overlap_matrix.shape:", overlap_matrix.shape, "\n\n")
+                # print("overlap_matrix.shape:", overlap_matrix.shape, "\n\n")
 
-                print("overlap_matrix:", overlap_matrix, "\n\n")
+                # print("overlap_matrix:", overlap_matrix, "\n\n")
                 mat = info["overlap_matrix"][valid][:, valid]
-                print("Mat:", mat, "\n\n")
+                # print("Mat:", mat, "\n\n")
 
                 if num_pos is not None:
                     # Sample a subset of pairs, binned by overlap.
@@ -522,7 +522,7 @@ class _PairDataset(torch.utils.data.Dataset):
                     )
                     pairs = np.stack(np.where(pairs), -1)
 
-                print(f"\n\ninput to treepdepth pairs is {pairs}")
+                # print(f"\n\ninput to treepdepth pairs is {pairs}")
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)
@@ -543,11 +543,53 @@ class _PairDataset(torch.utils.data.Dataset):
     def _read_view(self, scene, idx):
         path = self.root / self.images[scene][idx]
         ### I added
-        #logger.info(f"Reading view from {path}")
+        #logger.info(f"Reading view from {path}")        
+        # K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
+        # T = self.poses[scene][idx].astype(np.float32, copy=False)
+        
+        ## likely loading poses wrong?!
+        if idx >= len(self.intrinsics[scene]):
+            print("idx,len(self.intrinsics[scene])", idx,len(self.intrinsics[scene]))
+            idx = len(self.intrinsics[scene]) - 1
+            print(f"new INTRINSICS idx is: {idx}")
+            K = self.intrinsics[scene][idx].astype(np.float32, copy=False)            
+        else:
+            K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
+            
 
-        # read pose data
-        K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
-        T = self.poses[scene][idx].astype(np.float32, copy=False)
+        if idx >= len(self.poses[scene]):
+            print("idx,len(self.poses[scene])", idx,len(self.poses[scene]))
+            idx = len(self.poses[scene]) - 1
+            print(f"new POSES idx is: {idx}")
+            T = self.poses[scene][idx].astype(np.float32, copy=False)            
+        else:            
+            T = self.poses[scene][idx].astype(np.float32, copy=False)
+        
+
+
+        # try:
+        #     # print("UPDATED VERSION")
+        #     K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
+        #     T = self.poses[scene][idx].astype(np.float32, copy=False)
+        # except Exception as e:  # Catching a general Exception
+        #     print(f"Exception occurred: {type(e).__name__} - {e}")   
+        #     print("path, self.root , self.images[scene][idx]", path, self.root , self.images[scene][idx])
+        #     # read pose data
+        #     print("scene, idx", scene, idx)
+        #     print("self.intrinsics[scene][idx].shape", self.intrinsics[scene][idx].shape)
+        #     print("self.poses[scene][idx].shape", self.poses[scene][idx].shape)
+        #     max_idx = len(self.poses[scene]) - 1  # Get the last valid index
+
+        #     MAX_BOUNDS = 5
+        #     # Check if the requested index is close to the valid range
+        #     if abs(idx - max_idx) <= MAX_BOUNDS:
+        #         print(f"Adjusting out-of-bounds index {idx} to {max_idx} for scene {scene}")
+        #         idx = max_idx  # Adjust index to the last valid one
+        #         K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
+        #         T = self.poses[scene][idx].astype(np.float32, copy=False)
+        #     else:
+        #         raise IndexError(f"Skipping index {idx}: Index too far out of bounds for scene {scene}")
+
 
         ### I added
         #logger.info(f"Pose data: {K.shape}, {T.shape}")
@@ -586,7 +628,7 @@ class _PairDataset(torch.utils.data.Dataset):
             #     scene,
             #     depth_filename
             # )
-            print(depth_path)
+            # print(depth_path)
             with open(depth_path, "rb") as f:  # Use open() in binary mode for .npy
                 depth = np.load(f)
             depth = torch.Tensor(depth)[None]           
