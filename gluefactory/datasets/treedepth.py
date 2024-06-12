@@ -25,6 +25,8 @@ from .utils import rotate_intrinsics, rotate_pose_inplane, scale_intrinsics
 
 from multiprocessing import Pool
 
+# DATA_PATH = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/data/")
+
 
 logger = logging.getLogger(__name__)
 scene_lists_path = Path(__file__).parent / "tartanSceneLists"
@@ -565,12 +567,29 @@ class _PairDataset(torch.utils.data.Dataset):
 
         # read depth
         if self.conf.read_depth:
+            localRoot = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/")
+            # if "_L_" in scene:
+            #     name = "left"
+            # /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/data/syntheticForestData/depthData/SF_E_L_P005/000239_left_depth.npy'
             depth_path = (
-                self.root / self.conf.depth_subpath / scene / (path.stem + ".h5")
+                localRoot / self.conf.depth_subpath / scene / (path.stem + "_depth.npy")
             )
-            with h5py.File(str(depth_path), "r") as f:
-                depth = f["/depth"].__array__().astype(np.float32, copy=False)
-                depth = torch.Tensor(depth)[None]
+            # with h5py.File(str(depth_path), "r") as f:
+            #     depth = f["/depth"].__array__().astype(np.float32, copy=False)
+            #     depth = torch.Tensor(depth)[None]
+            # depth_filename = info["depth_paths"][idx0]  # Get original depth filename
+            # depth_filename = depth_filename.replace(".h5", "_depth.npy") # Replace .h5 with _depth.npy
+
+            # # Update the path to your local directory
+            # depth_path = os.path.join(
+            #     "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/depthData",
+            #     scene,
+            #     depth_filename
+            # )
+            print(depth_path)
+            with open(depth_path, "rb") as f:  # Use open() in binary mode for .npy
+                depth = np.load(f)
+            depth = torch.Tensor(depth)[None]           
             assert depth.shape[-2:] == img.shape[-2:]
         else:
             depth = None
