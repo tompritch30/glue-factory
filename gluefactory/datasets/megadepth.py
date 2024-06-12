@@ -866,6 +866,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 print( "info[overlap_matrix]", info["overlap_matrix"])
 
                 mat = info["overlap_matrix"][valid][:, valid]
+                print("mat", mat)
                 # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
 
                 if num_pos is not None:
@@ -898,6 +899,7 @@ class _PairDataset(torch.utils.data.Dataset):
                     )
                     pairs = np.stack(np.where(pairs), -1)
 
+                print(f"\n\ninput to megadepth pairs is {pairs}")
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)

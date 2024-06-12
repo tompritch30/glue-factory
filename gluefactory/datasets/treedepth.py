@@ -380,7 +380,9 @@ class _PairDataset(torch.utils.data.Dataset):
             # assert num_neg is None
             assert self.conf.views == 2
             pairs_path = scene_lists_path / self.conf[split + "_pairs"]
+            print(f"the pairs path used is: {pairs_path}")
             for line in pairs_path.read_text().rstrip("\n").split("\n"):
+                print(f"the line used for im0 and im1 is {line}")
                 im0, im1 = line.split(" ")
                 scene = im0.split("/")[0]
                 assert im1.split("/")[0] == scene
@@ -423,76 +425,110 @@ class _PairDataset(torch.utils.data.Dataset):
                 #     )
                 # except:
                 #     print("failed for: ", scene)
+                # valid = (self.images[scene] != None) & (  # noqa: E711
+                #     self.depths[scene] != None  # noqa: E711
+                # )
+                # # 1. Find the size difference
+                # size_diff = len(self.images[scene]) - len(self.depths[scene])
+                # self.images[scene] = sorted(self.images[scene])
+                # self.depths[scene] = sorted(self.depths[scene])
 
-                valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
+                # # 2. Safely trim the end of self.images (avoiding errors if size_diff is negative)
+                # print(f"Removing  images: {self.images[scene][-size_diff:]}")  # Print the removed image
+                # self.images[scene] = self.images[scene][:-size_diff]
+                
+                # have psoe files in imageData
+                self.images[scene] = [img for img in self.images[scene] if "pose" not in img]
+
+                # 3. Perform your validation after trimming
+                valid = (self.images[scene] != None) & (  # noqa: E711
+                    self.depths[scene] != None  # noqa: E711
+                )
+
+                # valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
                 # valid = np.logical_and(self.images[scene] != None, self.depths[scene] != None)
 
                 #  valid = (self.images[scene] != None) | (self.depths[scene] != None)
 
-                if valid:
-                    ind = np.where(valid)[0]
-                    # print(info.keys())
-                    # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")                   
-                    
+                ind = np.where(valid)[0]
+                # print(info.keys())
+                # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")                   
+                
 
-                    # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
-                    # overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
-                    # # overlap_matrix = np.array([1, 2, 3])
-                    # save_overlap_matrix(base_directory, scene, overlap_matrix)
-                    b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
-                    def load_overlap_matrix(base_directory, scene):
-                        # Construct the filename for the overlap matrix
-                        filename = os.path.join(base_directory, scene + ".npz")
-
-                        # Load the overlap matrix from the file
+                # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
+                # overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
+                # # overlap_matrix = np.array([1, 2, 3])
+                # save_overlap_matrix(base_directory, scene, overlap_matrix)
+                b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
+                def load_overlap_matrix(base_directory, scene):
+                    # Construct the filename for the overlap matrix
+                    filename = os.path.join(base_directory, scene + ".npz")
+                    try:
                         data = np.load(filename)
                         overlap_matrix = data['overlap_matrix']
                         print(f"Loaded overlap matrix for {scene} from file.")
-                        return overlap_matrix
-                    overlap_matrix = load_overlap_matrix(b_dir, scene)
-                    info["overlap_matrix"] = overlap_matrix
+                        return overlap_matrix, True  # Return matrix and success flag
+                    except FileNotFoundError:
+                        print(f"Skipping {scene}: Overlap matrix file not found.")
+                        return None, False 
+                    # # Load the overlap matrix from the file
+                    # data = np.load(filename)
+                    # overlap_matrix = data['overlap_matrix']
+                    # print(f"Loaded overlap matrix for {scene} from file.")
+                    # return overlap_matrix
+                # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+                if scene == "SFW_E_L_P000":
+                    print("skipping SFW_E_L_P000")
+                    continue 
+                overlap_matrix, success = load_overlap_matrix(b_dir, scene)
+                if not success:
+                    continue 
+                # overlap_matrix = load_overlap_matrix(b_dir, scene)
+                info["overlap_matrix"] = overlap_matrix
+                print("overlap_matrix.shape:", overlap_matrix.shape, "\n\n")
 
-                    print("overlap_matrix", overlap_matrix)
-                    mat = info["overlap_matrix"][valid][:, valid]
-                    print("mat", mat)
+                print("overlap_matrix:", overlap_matrix, "\n\n")
+                mat = info["overlap_matrix"][valid][:, valid]
+                print("Mat:", mat, "\n\n")
 
-                    if num_pos is not None:
-                        # Sample a subset of pairs, binned by overlap.
-                        num_bins = self.conf.num_overlap_bins
-                        assert num_bins > 0
-                        bin_width = (
-                            self.conf.max_overlap - self.conf.min_overlap
-                        ) / num_bins
-                        num_per_bin = num_pos // num_bins
-                        pairs_all = []
-                        for k in range(num_bins):
-                            bin_min = self.conf.min_overlap + k * bin_width
-                            bin_max = bin_min + bin_width
-                            pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                            pairs_bin = np.stack(np.where(pairs_bin), -1)
-                            pairs_all.append(pairs_bin)
-                        # Skip bins with too few samples
-                        has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                        num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                        pairs = []
-                        for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                            if keep:
-                                pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                        pairs = np.concatenate(pairs, 0)
-                    else:
-                        pairs = (mat > self.conf.min_overlap) & (
-                            mat <= self.conf.max_overlap
-                        )
-                        pairs = np.stack(np.where(pairs), -1)
-
-                    pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
-                    if num_neg is not None:
-                        neg_pairs = np.stack(np.where(mat <= 0.0), -1)
-                        neg_pairs = sample_n(neg_pairs, num_neg, seed)
-                        pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
-                    self.items.extend(pairs)
+                if num_pos is not None:
+                    # Sample a subset of pairs, binned by overlap.
+                    num_bins = self.conf.num_overlap_bins
+                    assert num_bins > 0
+                    bin_width = (
+                        self.conf.max_overlap - self.conf.min_overlap
+                    ) / num_bins
+                    num_per_bin = num_pos // num_bins
+                    pairs_all = []
+                    for k in range(num_bins):
+                        bin_min = self.conf.min_overlap + k * bin_width
+                        bin_max = bin_min + bin_width
+                        pairs_bin = (mat > bin_min) & (mat <= bin_max)
+                        pairs_bin = np.stack(np.where(pairs_bin), -1)
+                        pairs_all.append(pairs_bin)
+                    # Skip bins with too few samples
+                    has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+                    num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+                    pairs = []
+                    for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+                        if keep:
+                            pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+                    pairs = np.concatenate(pairs, 0)
                 else:
-                    print("scene invalid:", scene)
+                    pairs = (mat > self.conf.min_overlap) & (
+                        mat <= self.conf.max_overlap
+                    )
+                    pairs = np.stack(np.where(pairs), -1)
+
+                print(f"\n\ninput to treepdepth pairs is {pairs}")
+                pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
+                if num_neg is not None:
+                    neg_pairs = np.stack(np.where(mat <= 0.0), -1)
+                    neg_pairs = sample_n(neg_pairs, num_neg, seed)
+                    pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
+                self.items.extend(pairs)
+                # else:
+                #     print("scene invalid:", scene)
                 
                 ### I added
                 #
