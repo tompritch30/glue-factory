@@ -50,16 +50,11 @@ def sample_homography(img, conf: dict, size: list):
     data["image_size"] = np.array(size, dtype=np.float32)
     return data
 
-"""
-python -m gluefactory.train sp+lg_densehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
-"""
-
-# give me a function to print the current day of the week
 
 class HomographySynthTreeDataset(BaseDataset):
     default_conf = {
         # image search
-        "data_dir": "SynthTree43/test_set",  # the top-level directory
+        "data_dir": "denseForest/ForestTrail/trail1reformat",  # the top-level directory
         "image_dir": "",  # no subdirectory in this case
         "image_list": "image_list.txt",  # the generated image list
         "glob": ["*.jpg", "*.png", "*.jpeg", "*.JPG", "*.PNG"],
