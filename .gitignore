@@ -7,3 +7,7 @@
 /data/
 /outputs/
 __pycache__
+
+# Exception for .py and .sh files in data and outputs directories
+!/data/**/*.py
+!/data/**/*.sh

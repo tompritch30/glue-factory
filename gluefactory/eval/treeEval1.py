@@ -32,8 +32,16 @@ SFW_E_R_P005
 """
 
 """
+python -m gluefactory.eval.FILENAME --checkpoint EXPERIMENT_NAME --overwrite
+"""
+
+"""
 python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_megadepth --overwrite
 and --overwrite if new configs
+"""
+
+"""
+python -m gluefactory.eval.hpatches --conf superpoint+lightglue-official --overwrite
 """
 
 logger = logging.getLogger(__name__)
