@@ -3,8 +3,8 @@ data:
     data_dir: denseForest/ForestTrail/trail1reformat
     train_size: 40000 # 150000
     val_size:  3000
-    batch_size: 32 # 64 # # 64 # 128
-    num_workers: 6 # 8 # 14 # 6 # 14
+    batch_size: 128 # 64 - paper spec (128)
+    num_workers: 14 # 8  - paper spec (14)
     homography:
         difficulty: 0.7
         max_angle: 45
