@@ -1,6 +1,6 @@
 data:
     name: homographiesDense #.HomographySynthTreeDataset # HomographySynthTreeDataset
-    data_dir: denseForest/ForestTrail/trail1reformat
+    data_dir: denseForest/ForestTrail/data
     train_size: 40000 # 150000
     val_size:  3000
     batch_size: 128 # 64 - paper spec (128)

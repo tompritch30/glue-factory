@@ -4,10 +4,12 @@
 *.pyc
 /.idea/
 /venv/
+!/data/**/*.py
+!/data/**/*.sh
+!/outputs/**/*.py
+!/outputs/**/*.sh
 /data/
 /outputs/
 __pycache__
 
 # Exception for .py and .sh files in data and outputs directories
-!/data/**/*.py
-!/data/**/*.sh
