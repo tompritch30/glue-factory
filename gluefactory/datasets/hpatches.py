@@ -62,6 +62,7 @@ class HPatches(BaseDataset, torch.utils.data.Dataset):
         self.preprocessor = ImagePreprocessor(conf.preprocessing)
 
         self.root = DATA_PATH / conf.data_dir
+        print(f"root is {self.root}")
         if not self.root.exists():
             logger.info("Downloading the HPatches dataset.")
             self.download()
