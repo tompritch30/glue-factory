@@ -11,7 +11,21 @@ __pycache__
 /outputs/
 
 # Exception for .py and .sh files in data and outputs directories
-!/data/**/*.py
-!/data/**/*.sh
-!/outputs/**/*.py
-!/outputs/**/*.sh
+# data/**/*.txt
+# data/**/*.png
+# data/**/*.npy
+# data/**/*.jpeg
+# data/**/*.jpg
+# data/**/*.zip
+# data/**/*.mat
+# data/**/*.YAML
+# data/**/*.json
+# data/**/*.h5
+# data/**/*.pkl
+# data/megadepth
+# data/megadepth1500
+# data/finnForest
+# data/m2fnet
+# data/revisitop1m
+# data/SynPhoRest
+
