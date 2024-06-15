@@ -34,7 +34,9 @@ scene_lists_path = Path(__file__).parent / "tartanSceneLists"
 """
 python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
+python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
 """
+
 
 def sample_n(data, num, seed=None):
     if len(data) > num:
