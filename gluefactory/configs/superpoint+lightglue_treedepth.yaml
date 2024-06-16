@@ -13,7 +13,7 @@ data:
     num_overlap_bins: 3
     read_depth: true
     read_image: true
-    batch_size: 8 # 8 # 32
+    batch_size: 8 # 32 # 8 # 32
     num_workers: 4 # 14
     load_features:
         do: false  # enable this if you have cached predictions
@@ -42,7 +42,7 @@ model:
     allow_no_extract: True
 train:
     seed: 0
-    epochs: 5 # 50
+    epochs: 20 # 50
     log_every_iter: 100
     eval_every_iter: 1000
     lr: 1e-4

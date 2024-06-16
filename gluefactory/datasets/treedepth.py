@@ -133,6 +133,8 @@ def load_scene_data(base_dir, scene):
     depth_data = load_data_from_file(depth_file_path)
     image_data = load_data_from_file(image_file_path)
     flow_data = load_data_from_file(flow_file_path)
+
+
     
     def pose_to_matrix(pose):
         import numpy as np
@@ -176,6 +178,40 @@ def load_scene_data(base_dir, scene):
     length = max(len(depth_data), len(image_data), len(flow_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
     camera_intrinsics = np.array([K] * length)
+
+    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+
+    # give code to check that every image, depth, flow and pose has a corresponding value
+    # temporary fix
+    image_data = [i for i in image_data if ".txt" not in i]
+    flow_data = [f for f in flow_data if "flow" in f]
+    # temp fix the off by one error
+    # flow_data = flow_data[1:]
+    # mask_paths = [os.path.join(fileListDir, f) for f in os.listdir(fileListDir) if f.endswith("_mask.npy")]
+
+    # flow_data = [load_npy_file(path) for path in flow_paths]
+    # mask_data = [load_npy_file(path) for path in mask_paths]
+
+
+    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+
+    image_data, depth_data  = sorted(image_data), sorted(depth_data)
+
+    """
+    Off by 1: 
+    imageData/SF_H_L_P001/000549_left.png depthData/SF_H_L_P001/000549_left_depth.npy flowData/SF_H_P001/000548_000549_flow.npy
+    BUT
+    389 389 778 389
+    """
+    flow_data = sorted(flow_data, key=lambda x: int(str(x).split("/")[-1].split("_")[0]) if str(x).split("/")[-1].split("_")[0].isdigit() else 0)
+    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+
+    # mask_data = sorted(mask_data, key=lambda x: int(x.split("/")[-1].split("_")[0]))
+    print(image_data[-1], depth_data[-1], flow_data[-1])
+
+    for i in range(-1, -10):
+        print(f"image_data[{i}]: {image_data[i]}, depth_data[{i}]: {depth_data[i]}, flow_data[{i}]: {flow_data[i]}, poses[{i}]: {poses[i]}", sep="\n")
+
 
     return {
         "image_paths": image_data,
