@@ -858,15 +858,19 @@ class _PairDataset(torch.utils.data.Dataset):
                 # assert path.exists(), path
                 info = np.load(str(path), allow_pickle=True)
                 # # limited_logger.log("str(path)", str(path))
+                print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
+                print("valid array:", valid)
+
                 ind = np.where(valid)[0]
-                #print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
+                print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
                 #print( "info[overlap_matrix]", info["overlap_matrix"])
 
                 mat = info["overlap_matrix"][valid][:, valid]
-                #print("mat", mat)
+                # print("mat", mat)
+                print("mat shape", mat.shape)
                 # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
                 
 
@@ -900,7 +904,8 @@ class _PairDataset(torch.utils.data.Dataset):
                     )
                     pairs = np.stack(np.where(pairs), -1)
 
-                #print(f"\n\ninput to megadepth pairs is {pairs}")
+                # print(f"\n\ninput to megadepth pairs is {pairs}")
+                print(pairs.shape)
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)
@@ -1081,6 +1086,7 @@ class _TripletDataset(_PairDataset):
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depth[scene] != None  # noqa: E711
                 )
+                
                 ind = np.where(valid)[0]
                 mat = info["overlap_matrix"][valid][:, valid]
                 good = (mat > self.conf.min_overlap) & (mat <= self.conf.max_overlap)

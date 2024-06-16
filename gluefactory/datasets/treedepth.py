@@ -179,12 +179,14 @@ def load_scene_data(base_dir, scene):
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
     camera_intrinsics = np.array([K] * length)
 
-    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+    # print(len(image_data), len(depth_data), len(flow_data), len(poses))
+
+    # remove SFW_E_L_P001 from train list
 
     # give code to check that every image, depth, flow and pose has a corresponding value
     # temporary fix
     image_data = [i for i in image_data if ".txt" not in i]
-    flow_data = [f for f in flow_data if "flow" in f]
+    flow_data = [f for f in flow_data if "flow.npy" in f]
     # temp fix the off by one error
     # flow_data = flow_data[1:]
     # mask_paths = [os.path.join(fileListDir, f) for f in os.listdir(fileListDir) if f.endswith("_mask.npy")]
@@ -193,7 +195,7 @@ def load_scene_data(base_dir, scene):
     # mask_data = [load_npy_file(path) for path in mask_paths]
 
 
-    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+    # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
     image_data, depth_data  = sorted(image_data), sorted(depth_data)
 
@@ -204,13 +206,30 @@ def load_scene_data(base_dir, scene):
     389 389 778 389
     """
     flow_data = sorted(flow_data, key=lambda x: int(str(x).split("/")[-1].split("_")[0]) if str(x).split("/")[-1].split("_")[0].isdigit() else 0)
-    print(len(image_data), len(depth_data), len(flow_data), len(poses))
+    # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
     # mask_data = sorted(mask_data, key=lambda x: int(x.split("/")[-1].split("_")[0]))
-    print(image_data[-1], depth_data[-1], flow_data[-1])
+    # print(image_data[-1], depth_data[-1], flow_data[-1])
 
-    for i in range(-1, -10):
-        print(f"image_data[{i}]: {image_data[i]}, depth_data[{i}]: {depth_data[i]}, flow_data[{i}]: {flow_data[i]}, poses[{i}]: {poses[i]}", sep="\n")
+    # for i in range(-1, -10):
+    #     print(f"image_data[{i}]: {image_data[i]}, depth_data[{i}]: {depth_data[i]}, flow_data[{i}]: {flow_data[i]}, poses[{i}]: {poses[i]}", sep="\n")
+
+    # Add the times two if not including the .npy filter
+    ## will cause error with the off by one error with overlap matrices being too small - may have to check overlap matrix calcualtion ensure correct order of depth values etc
+    # image_data = image_data[:-1]
+    # depth_data = depth_data[:-1]
+    # # flow_data = flow_data[:-1]
+    # poses = poses[:-1]
+
+    # for i in range(len(image_data)):
+    #     print(f"Image: {image_data[i]}, Depth: {depth_data[i]}, Flow: {flow_data[i]}, Poses: {poses[i]}")
+
+    # Add plus one unti review oervlap matrix
+    try:
+        assert len(image_data) == len(depth_data) == len(flow_data) + 1 == len(poses)
+    except:
+        print(f"LENGTH ASSERTION: Scene: {scene}, image_data: {len(image_data)}, depth_data: {len(depth_data)}, flow_data: {len(flow_data)}, poses: {len(poses)}")
+        # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
 
     return {
@@ -376,10 +395,11 @@ class _PairDataset(torch.utils.data.Dataset):
             base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
             info = load_scene_data(base_directory, scene)
             
-            self.images[scene] = info["image_paths"]
-            self.depths[scene] = info["depth_paths"]
-            self.poses[scene] = info["poses"]            
-            self.intrinsics[scene] = info["intrinsics"]
+            ## I added 16-06-24 for having each as shape attribute
+            self.images[scene] = np.array(info["image_paths"])
+            self.depths[scene] = np.array(info["depth_paths"])
+            self.poses[scene] = np.array(info["poses"])            
+            self.intrinsics[scene] = np.array(info["intrinsics"])
             # c = 0
             # if c < 1:
             #     print("image, depth, pose, intrinsrtic", info["image_paths"].shape, info["depth_paths"].shape, info["poses"].shape, info["intrinsics"].shape, sep="\n")
@@ -481,9 +501,16 @@ class _PairDataset(torch.utils.data.Dataset):
                 self.images[scene] = [img for img in self.images[scene] if "pose" not in img]
 
                 # 3. Perform your validation after trimming
+                ### MYVALID
+                # NEED TO FIND THE SORUCE OF THIS DATA where self.images is loaded
+                self.images[scene] = np.array(self.images[scene])
+                self.depths[scene] = np.array(self.depths[scene])
+                print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
+                print("valid array:", valid)
+
 
                 # valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
                 # valid = np.logical_and(self.images[scene] != None, self.depths[scene] != None)
@@ -517,21 +544,26 @@ class _PairDataset(torch.utils.data.Dataset):
                     # print(f"Loaded overlap matrix for {scene} from file.")
                     # return overlap_matrix
                 # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+                
                 if scene == "SFW_E_L_P000":
                     print("skipping SFW_E_L_P000")
                     continue 
+                print("loading overlap matrix for:scene:", scene)
                 overlap_matrix, success = load_overlap_matrix(b_dir, scene)
                 if not success:
+                    print("did not load overlap matrix for scene:", scene)
                     continue 
-                # overlap_matrix = load_overlap_matrix(b_dir, scene)
+
                 info["overlap_matrix"] = overlap_matrix
-                # print("overlap_matrix.shape:", overlap_matrix.shape, "\n\n")
+                # print("overlap_matrix shape:", info["overlap_matrix"].shape)
 
                 # print("overlap_matrix:", overlap_matrix, "\n\n")
                 mat = info["overlap_matrix"][valid][:, valid]
                 # print("Mat:", mat, "\n\n")
+                # print("Mat shape:", mat.shape, "\n\n")
 
                 if num_pos is not None:
+                    # # limited_logger.log("num_pos", num_pos)
                     # Sample a subset of pairs, binned by overlap.
                     num_bins = self.conf.num_overlap_bins
                     assert num_bins > 0
@@ -561,6 +593,11 @@ class _PairDataset(torch.utils.data.Dataset):
                     pairs = np.stack(np.where(pairs), -1)
 
                 # print(f"\n\ninput to treepdepth pairs is {pairs}")
+                # 0-1 317-318
+
+                # pairs = pairs[:, 2:]
+                # print(pairs.shape)
+                # print(pairs)
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)
@@ -799,7 +836,7 @@ class _TripletDataset(_PairDataset):
                     raise NotImplementedError("TODO")
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depth[scene] != None  # noqa: E711
-                )
+                )                
                 ind = np.where(valid)[0]
                 mat = info["overlap_matrix"][valid][:, valid]
                 good = (mat > self.conf.min_overlap) & (mat <= self.conf.max_overlap)
