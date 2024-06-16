@@ -505,11 +505,11 @@ class _PairDataset(torch.utils.data.Dataset):
                 # NEED TO FIND THE SORUCE OF THIS DATA where self.images is loaded
                 self.images[scene] = np.array(self.images[scene])
                 self.depths[scene] = np.array(self.depths[scene])
-                print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
+                # print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
-                print("valid array:", valid)
+                # print("valid array:", valid)
 
 
                 # valid = (self.images.get(scene) is not None) and (self.depths.get(scene) is not None)
@@ -548,7 +548,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 if scene == "SFW_E_L_P000":
                     print("skipping SFW_E_L_P000")
                     continue 
-                print("loading overlap matrix for:scene:", scene)
+                # print("loading overlap matrix for:scene:", scene)
                 overlap_matrix, success = load_overlap_matrix(b_dir, scene)
                 if not success:
                     print("did not load overlap matrix for scene:", scene)

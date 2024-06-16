@@ -94,7 +94,10 @@ class SuperPoint(BaseModel):
     def _init(self, conf):
         self.conf = SimpleNamespace(**conf)
         self.stride = 2 ** (len(self.conf.channels) - 2)
-        channels = [1, *self.conf.channels[:-1]]
+
+        # RGB
+        channels = [3, *self.conf.channels[:-1]]  
+        # channels = [1, *self.conf.channels[:-1]]
 
         backbone = []
         for i, c in enumerate(channels[1:], 1):
@@ -123,6 +126,7 @@ class SuperPoint(BaseModel):
     def _forward(self, data):
         image = data["image"]
         if image.shape[1] == 3:  # RGB
+            ### CONVERTS TO GRAYSCALE AS INPUT
             scale = image.new_tensor([0.299, 0.587, 0.114]).view(1, 3, 1, 1)
             image = (image * scale).sum(1, keepdim=True)
         features = self.backbone(image)

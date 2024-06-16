@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 """
 python -m gluefactory.train sp+lg_homography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
+python -m gluefactory.train sp+lg_densehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
+python -m gluefactory.train sp+lg_rgbdensehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
 """
 
 def sample_homography(img, conf: dict, size: list):
