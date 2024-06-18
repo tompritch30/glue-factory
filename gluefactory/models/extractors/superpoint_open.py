@@ -87,6 +87,7 @@ class SuperPoint(BaseModel):
         "channels": [64, 64, 128, 128, 256],
         "dense_outputs": None,
         "weights": None,  # local path of pretrained weights
+        "image_mode": None,  # Additional parameter for extra data
     }
 
     checkpoint_url = "https://github.com/rpautrat/SuperPoint/raw/master/weights/superpoint_v6_from_tf.pth"  # noqa: E501
@@ -94,10 +95,21 @@ class SuperPoint(BaseModel):
     def _init(self, conf):
         self.conf = SimpleNamespace(**conf)
         self.stride = 2 ** (len(self.conf.channels) - 2)
+        self.image_mode = self.conf.image_mode  
 
-        # RGB
-        channels = [3, *self.conf.channels[:-1]]  
-        # channels = [1, *self.conf.channels[:-1]]
+        if self.conf.image_mode == 'RGB':
+            channels = [3, *self.conf.channels[:-1]]
+            print("Superpoint RGB mode selected")
+        elif self.conf.image_mode == 'RGBD':
+            channels = [4, *self.conf.channels[:-1]]
+            print("Superpoint RGBD mode selected")
+        elif self.conf.image_mode == 'stereo':
+            channels = [6, *self.conf.channels[:-1]]
+            print("Superpoint Stereo mode selected")
+        else: # grayscale
+            channels = [1, *self.conf.channels[:-1]]
+            print("Superpoint grayscale mode selected")
+        
 
         backbone = []
         for i, c in enumerate(channels[1:], 1):
@@ -125,10 +137,10 @@ class SuperPoint(BaseModel):
 
     def _forward(self, data):
         image = data["image"]
-        if image.shape[1] == 3:  # RGB
-            ### CONVERTS TO GRAYSCALE AS INPUT
-            scale = image.new_tensor([0.299, 0.587, 0.114]).view(1, 3, 1, 1)
-            image = (image * scale).sum(1, keepdim=True)
+        # if image.shape[1] == 3:  # RGB
+        #     ### CONVERTS TO GRAYSCALE AS INPUT
+        #     scale = image.new_tensor([0.299, 0.587, 0.114]).view(1, 3, 1, 1)
+        #     image = (image * scale).sum(1, keepdim=True)
         features = self.backbone(image)
         descriptors_dense = torch.nn.functional.normalize(
             self.descriptor(features), p=2, dim=1

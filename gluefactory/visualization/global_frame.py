@@ -14,6 +14,7 @@ from ..models.cache_loader import CacheLoader
 from .tools import RadioHideTool
 
 
+
 class GlobalFrame:
     default_conf = {
         "x": "???",

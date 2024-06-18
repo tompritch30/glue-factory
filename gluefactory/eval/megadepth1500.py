@@ -99,7 +99,9 @@ class MegaDepth1500Pipeline(EvalPipeline):
 
     def get_predictions(self, experiment_dir, model=None, overwrite=False):
         """Export a prediction file for each eval datapoint"""
+
         pred_file = experiment_dir / "predictions.h5"
+        print(pred_file)
         if not pred_file.exists() or overwrite:
             if model is None:
                 model = load_model(self.conf.model, self.conf.checkpoint)

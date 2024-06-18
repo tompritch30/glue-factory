@@ -39,7 +39,9 @@ logger = logging.getLogger(__name__)
 python -m gluefactory.train sp+lg_homography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
 python -m gluefactory.train sp+lg_densehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
 python -m gluefactory.train sp+lg_rgbdensehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
+python -m gluefactory.train sp+lg_rgbdensehomography --rgb \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml 
 """
+
 
 def sample_homography(img, conf: dict, size: list):
     data = {}
@@ -95,7 +97,8 @@ class HomographySynthTreeDataset(BaseDataset):
             "force_num_keypoints": False,
         },
         ### I added
-        "log_level": "ERROR"  # INFO = will log, ERROR = no logs, DEBUG, WARNING, CRITICAL
+        "log_level": "ERROR",  # INFO = will log, ERROR = no logs, DEBUG, WARNING, CRITICAL
+        "image_mode": None
     }
 
     def _init(self, conf):
@@ -145,6 +148,10 @@ class HomographySynthTreeDataset(BaseDataset):
 
         if conf.shuffle_seed is not None:
             np.random.RandomState(conf.shuffle_seed).shuffle(images)
+
+        # Set the image mode
+        print("conf['image_mode']: ", conf['image_mode'])
+        self.image_mode = conf['image_mode']
 
         images = sorted(images)
         logger.info(f"Total images found: {len(images)}")
@@ -230,6 +237,49 @@ class _Dataset(torch.utils.data.Dataset):
         else:
             return self.getitem(idx)
 
+
+    # def getitem(self, idx):
+    #     name = self.image_names[idx]
+    #     image_path = self.image_dir / name
+
+    #     # Load image in RGB
+    #     img_rgb = read_image(image_path, color=True)
+
+    #     if self.conf.image_mode == 'RGBD':
+    #         # Assume depth data is stored in a .npy file with the same name
+    #         depth_path = image_path.with_suffix('.npy')
+    #         depth = np.load(depth_path)
+    #         img_rgbd = np.concatenate((img_rgb, depth[:, :, np.newaxis]), axis=2)
+
+    #         img = torch.from_numpy(img_rgbd).permute(2, 0, 1).float() / 255.0
+
+    #     elif self.conf.image_mode == 'stereo':
+    #         # Assume left and right images stored as name_left and name_right
+    #         left_img_path = image_path.with_name(name + '_left.jpg')
+    #         right_img_path = image_path.with_name(name + '_right.jpg')
+    #         img_left = read_image(left_img_path, color=True)
+    #         img_right = read_image(right_img_path, color=True)
+
+    #         img_stereo = np.concatenate((img_left, img_right), axis=2)
+    #         img = torch.from_numpy(img_stereo).permute(2, 0, 1).float() / 255.0
+
+    #     elif self.conf.image_mode == 'RGB':
+    #         img = torch.from_numpy(img_rgb).permute(2, 0, 1).float() / 255.0
+
+    #     else:
+    #         # Default to grayscale
+    #         img_gray = read_image(image_path, color=False)
+    #         img = torch.from_numpy(img_gray)[None, :, :].float() / 255.0
+
+    #     # Prepare output data dictionary
+    #     data = {
+    #         "image": img,
+    #         "name": name,
+    #         "original_image_size": img.shape[1:]  # Height, Width
+    #     }
+    #     return data
+
+
     def _read_view(self, img, H_conf, ps, left=False):
         data = sample_homography(img, H_conf, ps)
         if left:
@@ -263,6 +313,28 @@ class _Dataset(torch.utils.data.Dataset):
         ### I added
         logger.info(f"Loading image {name}")
         logger.info(f"Original image shape: {img.shape}")
+
+        #######################
+        # Additional image modes handling
+        if self.conf.image_mode == 'RGBD':
+            print("in rgb mode in data loader")
+            # depth_path = img_path.with_suffix('.npy')  # Assuming depth data is in the same directory with .npy extension
+            # depth = np.load(depth_path)
+            # depth = np.expand_dims(depth, axis=2)  # Ensure depth has a third dimension
+            # img = np.concatenate((img, depth), axis=2)  # Concatenate depth data to RGB image
+            # img = torch.from_numpy(img).permute(2, 0, 1).float() / 255.0  # Convert to tensor
+
+        elif self.conf.image_mode == 'stereo':
+            print("in stereo mode in data loader")
+            # # Assuming left and right images are stored as name_left.jpg and name_right.jpg
+            # left_img_path = img_path.with_name(name + '_left.jpg')
+            # right_img_path = img_path.with_name(name + '_right.jpg')
+            # img_left = read_image(left_img_path, False)
+            # img_right = read_image(right_img_path, False)
+            # img = np.concatenate((img_left, img_right), axis=2)  # Concatenate left and right images
+            # img = torch.from_numpy(img).permute(2, 0, 1).float() / 255.0  # Convert to tensor
+
+        #######################
 
         left_conf = omegaconf.OmegaConf.to_container(self.conf.homography)
         if self.conf.right_only:

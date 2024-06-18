@@ -38,6 +38,8 @@ python -m gluefactory.eval.FILENAME --checkpoint EXPERIMENT_NAME --overwrite
 """
 python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_megadepth --overwrite
 and --overwrite if new configs
+
+python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_homography superpoint+lightglue-official --overwrite
 """
 
 """

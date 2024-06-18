@@ -657,7 +657,17 @@ if __name__ == "__main__":
     parser.add_argument("--no_eval_0", action="store_true")
     parser.add_argument("--run_benchmarks", action="store_true")
     parser.add_argument("dotlist", nargs="*")
+    
+
+    # MULTIMODAL DATA INPUT
+    parser.add_argument("--rgb", action="store_true", help="Use RGB image format")
+    parser.add_argument("--rgbd", action="store_true", help="Use RGBD image format")
+    parser.add_argument("--stereo", action="store_true", help="Use stereo image format")
+
     args = parser.parse_intermixed_args()
+
+    # Process the command-line arguments to set the image mode in the dataset configuration
+    
 
     logger.info(f"Starting experiment {args.experiment}")
     output_dir = Path(TRAINING_PATH, args.experiment)
@@ -674,6 +684,16 @@ if __name__ == "__main__":
             conf.train.seed = torch.initial_seed() & (2**32 - 1)
         OmegaConf.save(conf, str(output_dir / "config.yaml"))
 
+    ## Add
+    if args.rgb:
+        conf['image_mode'] = 'RGB' 
+    elif args.rgbd:
+        conf['image_mode'] = 'RGBD'
+    elif args.stereo:
+        conf['image_mode'] = 'stereo'
+    else:
+        conf['image_mode'] = None
+        
     # copy gluefactory and submodule into output dir
     for module in conf.train.get("submodules", []) + [__module_name__]:
         mod_dir = Path(__import__(str(module)).__file__).parent
