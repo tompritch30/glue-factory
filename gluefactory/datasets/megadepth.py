@@ -970,13 +970,15 @@ class _PairDataset(torch.utils.data.Dataset):
                         # Calculate the overlap matrix
                         calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
 
-                        full_overlap_matrix = np.zeros((len(depth_paths), len(depth_paths)))
+                        full_overlap_matrix = np.full((len(depth_paths), len(depth_paths)), -1.0)
                         # Populate the full matrix using the mask to place calculated overlaps correctly
-                        indices = np.where(mask)[0]
+                        indices = np.where(mask)[0]  # Get indices where mask is True
                         for i, idx_i in enumerate(indices):
                             for j, idx_j in enumerate(indices):
-                                full_overlap_matrix[idx_i, idx_j] = calculated_overlap_matrix[i, j]
-                                full_overlap_matrix[idx_j, idx_i] = calculated_overlap_matrix[i, j]  # Symmetric
+                                if i <= j:  # Fill upper triangle and diagonal
+                                    full_overlap_matrix[idx_i, idx_j] = calculated_overlap_matrix[i, j]
+                                    if idx_i != idx_j:  # Fill lower triangle if not on the diagonal
+                                        full_overlap_matrix[idx_j, idx_i] = calculated_overlap_matrix[i, j]
 
 
                         # Compare the calculated matrix with the ground truth
@@ -1008,6 +1010,11 @@ class _PairDataset(torch.utils.data.Dataset):
                         # Save the calculated overlap matrix
                         np.save(calculated_path, calculated_overlap_matrix)
                         print(f"Calculated overlap matrix saved to: {calculated_path}")
+
+                        # Save the full overlap matrix
+                        full_overlap_path = os.path.join(save_dir, f"{scene}_full_overlap.npy")
+                        np.save(full_overlap_path, full_overlap_matrix)
+                        print(f"Full overlap matrix saved to: {full_overlap_path}")
 
                         # Save the ground truth overlap matrix
                         np.save(ground_truth_path, ground_truth_overlap_matrix)
