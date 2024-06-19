@@ -716,7 +716,15 @@ def load_npy_file(partial_file_path):
 
     # Check if the file exists and load it
     if os.path.exists(file_path):
-        return np.load(file_path, allow_pickle=True)
+        with h5py.File(file_path, 'r') as f:
+            # print("Available keys in the HDF5 file:", list(f.keys()))
+            # Assuming the data you need is stored under a specific dataset name
+            data = f['depth'][:]  # Replace 'dataset_name' with the actual name    
+        
+        print(f"{file_path} data shape: {data.shape}")
+        print(f"{file_path} data: {data}")
+        return data
+        # return np.load(file_path, allow_pickle=True)
     else:
         print(f"File not found: {file_path}")
         raise FileNotFoundError(f"File not found: {file_path}")
