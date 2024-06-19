@@ -5,7 +5,7 @@ data:
         side: long
         square_pad: True
     train_split: train_scenes_clean.txt
-    train_num_per_scene: 100 #300
+    train_num_per_scene: 3 #300 # 100
     val_split: valid_scenes_clean.txt
     val_pairs: valid_pairs.txt
     min_overlap: 0.1
@@ -13,7 +13,7 @@ data:
     num_overlap_bins: 3
     read_depth: true
     read_image: true
-    batch_size: 4 # 8 # 16 # 8 # 32 # 8 # 32
+    batch_size: 3 # 4 # 8 # 16 # 8 # 32 # 8 # 32
     num_workers: 3 # 6 # 14
     load_features:
         do: false  # enable this if you have cached predictions
@@ -42,7 +42,7 @@ model:
     allow_no_extract: True
 train:
     seed: 0
-    epochs: 20 # 50
+    epochs: 100 # 50
     log_every_iter: 100
     eval_every_iter: 1000
     lr: 1e-4

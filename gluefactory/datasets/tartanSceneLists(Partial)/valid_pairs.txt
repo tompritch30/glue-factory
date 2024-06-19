@@ -1,0 +1,2 @@
+SF_E_L_APartialVal/000000_left.png SF_E_L_APartialVal/000001_left.png
+SF_E_L_APartialVal/000001_left.png SF_E_L_APartialVal/000002_left.png

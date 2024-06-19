@@ -29,12 +29,18 @@ from multiprocessing import Pool
 
 
 logger = logging.getLogger(__name__)
-scene_lists_path = Path(__file__).parent / "tartanSceneLists"
+partial_mode = True
+
+if partial_mode:
+    scene_lists_path = Path(__file__).parent / "tartanSceneLists(Partial)"
+else:
+    scene_lists_path = Path(__file__).parent / "tartanSceneLists"
 
 """
 python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
+python -m gluefactory.train sp+lg_treedepthPartial     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
 """
 
 
@@ -47,12 +53,16 @@ def sample_n(data, num, seed=None):
 
 
 class TreeDepth(BaseDataset):
+    if not partial_mode:
+        infoDir = "fileLists"
+    else:
+        infoDir = "fileListsPartial" 
     default_conf = {
         # paths
         "data_dir": "syntheticForestData/",
         "depth_subpath": "depthData/",
         "image_subpath": "imageData/",
-        "info_dir": "fileLists/",  # @TODO: intrinsics problem? -- is this required/whta is it for??
+        "info_dir": infoDir,  # @TODO: intrinsics problem? -- is this required/whta is it for??
         # Training
         "train_split": "train_scenes_clean.txt",
         "train_num_per_scene": 500,
@@ -108,7 +118,10 @@ import os
 
 def load_scene_data(base_dir, scene):
     # fix this
-    fileListDir = base_dir + '/fileLists'
+    if not partial_mode:
+        fileListDir = base_dir + '/fileLists'
+    else:
+        fileListDir = base_dir + '/fileListsPartial'
     
     # Removing 'L_' or 'R_' for pose files naming
     flow_scene = scene.replace('_L', '').replace('_R', '')
@@ -163,12 +176,16 @@ def load_scene_data(base_dir, scene):
 
     # Handle pose data based on scene naming
     poses = []
-    if '_L_' in scene:
-        pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_left.txt")
-    elif '_R_' in scene:
-        pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_right.txt")
-    else:
-        print("Neither L nor R in scene identifier. Check naming convention!")
+
+    if partial_mode != True:
+        if '_L_' in scene:
+            pose_file_path = os.path.join(base_dir, "poseDataPartial", f"{scene}_pose_left.txt")
+        elif '_R_' in scene:
+            pose_file_path = os.path.join(base_dir, "poseDataPartial", f"{scene}_pose_right.txt")
+        else:
+            print("Neither L nor R in scene identifier. Check naming convention!")
+    else: # For partial mode
+        pose_file_path = os.path.join(base_dir, "poseDataPartial", f"{scene}_pose_left.txt")
 
     if os.path.exists(pose_file_path):
         poses = load_poses_from_file(pose_file_path)
@@ -330,7 +347,8 @@ class _PairDataset(torch.utils.data.Dataset):
         self.conf = conf
 
         # redefine it
-        scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists")
+        # bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists")
+        scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists(Partial)")
 
         split_conf = conf[split + "_split"]
         if isinstance(split_conf, (str, Path)):            
@@ -428,6 +446,7 @@ class _PairDataset(torch.utils.data.Dataset):
         self.items = []
         split = self.split
         num_per_scene = self.conf[self.split + "_num_per_scene"]
+        # print(f"!!!!!sample_new_items: num_per_scene: {num_per_scene}")
         if isinstance(num_per_scene, Iterable):
             num_pos, num_neg = num_per_scene
         else:
@@ -521,38 +540,44 @@ class _PairDataset(torch.utils.data.Dataset):
                 # print(info.keys())
                 # print(info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"], sep = "\n\n")                   
                 
-
+                ### ^Calculate Overlap matrix run time ###
                 # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
-                # overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
-                # # overlap_matrix = np.array([1, 2, 3])
-                # save_overlap_matrix(base_directory, scene, overlap_matrix)
-                b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
-                def load_overlap_matrix(base_directory, scene):
-                    # Construct the filename for the overlap matrix
-                    filename = os.path.join(base_directory, scene + ".npz")
-                    try:
-                        data = np.load(filename)
-                        overlap_matrix = data['overlap_matrix']
-                        print(f"Loaded overlap matrix for {scene} from file.")
-                        return overlap_matrix, True  # Return matrix and success flag
-                    except FileNotFoundError:
-                        print(f"Skipping {scene}: Overlap matrix file not found.")
-                        return None, False 
-                    # # Load the overlap matrix from the file
-                    # data = np.load(filename)
-                    # overlap_matrix = data['overlap_matrix']
-                    # print(f"Loaded overlap matrix for {scene} from file.")
-                    # return overlap_matrix
-                # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+                # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]), sep="\n\n")
                 
-                if scene == "SFW_E_L_P000":
-                    print("skipping SFW_E_L_P000")
-                    continue 
-                # print("loading overlap matrix for:scene:", scene)
-                overlap_matrix, success = load_overlap_matrix(b_dir, scene)
-                if not success:
-                    print("did not load overlap matrix for scene:", scene)
-                    continue 
+                overlap_matrix = calculate_overlap_matrix(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
+                # # overlap_matrix = np.array([1, 2, 3])
+                save_overlap_matrix(base_directory, scene, overlap_matrix)
+                ### ^Calculate Overlap matrix run time ###
+
+                #### Load overlap matrix #####
+                # b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
+                # def load_overlap_matrix(base_directory, scene):
+                #     # Construct the filename for the overlap matrix
+                #     filename = os.path.join(base_directory, scene + ".npz")
+                #     try:
+                #         data = np.load(filename)
+                #         overlap_matrix = data['overlap_matrix']
+                #         print(f"Loaded overlap matrix for {scene} from file.")
+                #         return overlap_matrix, True  # Return matrix and success flag
+                #     except FileNotFoundError:
+                #         print(f"Skipping {scene}: Overlap matrix file not found.")
+                #         return None, False 
+                #     # # Load the overlap matrix from the file
+                #     # data = np.load(filename)
+                #     # overlap_matrix = data['overlap_matrix']
+                #     # print(f"Loaded overlap matrix for {scene} from file.")
+                #     # return overlap_matrix
+                # # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+                
+                # if scene == "SFW_E_L_P000":
+                #     print("skipping SFW_E_L_P000")
+                #     continue 
+                # # print("loading overlap matrix for:scene:", scene)
+                # overlap_matrix, success = load_overlap_matrix(b_dir, scene)
+                # if not success:
+                #     print("did not load overlap matrix for scene:", scene)
+                #     continue 
+                #### ^^Load overlap matrix #####
 
                 info["overlap_matrix"] = overlap_matrix
                 # print("overlap_matrix shape:", info["overlap_matrix"].shape)
@@ -562,7 +587,17 @@ class _PairDataset(torch.utils.data.Dataset):
                 # print("Mat:", mat, "\n\n")
                 # print("Mat shape:", mat.shape, "\n\n")
 
-                if num_pos is not None:
+                if partial_mode:
+                    if num_pos is not None:
+                        num_images = len(self.depths[scene])
+                        print(num_images)
+                        pairs = np.stack(np.triu_indices(num_images, 1), -1)  # Create all unique pairs (0,1), (0,2), (1,2)
+                        if pairs.size == 0:
+                            print("Insufficient data to form any pairs.")
+                    else:
+                        print("No positioning number specified, skipping pair formation.")
+                    pass
+                elif num_pos is not None:
                     # # limited_logger.log("num_pos", num_pos)
                     # Sample a subset of pairs, binned by overlap.
                     num_bins = self.conf.num_overlap_bins
@@ -585,12 +620,17 @@ class _PairDataset(torch.utils.data.Dataset):
                     for pairs_bin, keep in zip(pairs_all, has_enough_samples):
                         if keep:
                             pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                    pairs = np.concatenate(pairs, 0)
-                else:
+                    if pairs:
+                        pairs = np.concatenate(pairs, 0)
+                    else:
+                        print("No valid pairs formed; check overlap criteria or add more data.")
+                else:                    
                     pairs = (mat > self.conf.min_overlap) & (
                         mat <= self.conf.max_overlap
                     )
                     pairs = np.stack(np.where(pairs), -1)
+                    if pairs.size == 0:
+                        print("No valid pairs formed; check overlap criteria or add more data.")
 
                 # print(f"\n\ninput to treepdepth pairs is {pairs}")
                 # 0-1 317-318
