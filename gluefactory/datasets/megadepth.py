@@ -970,16 +970,31 @@ class _PairDataset(torch.utils.data.Dataset):
                         # Calculate the overlap matrix
                         calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
 
-                        # Compare the calculated matrix with the ground truth
-                        comparison_result = np.isclose(calculated_overlap_matrix, ground_truth_overlap_matrix)
-                        print("---------------------Comparison result:\n", comparison_result, "---------------------------------")
+                        full_overlap_matrix = np.zeros((len(depth_paths), len(depth_paths)))
+                        # Populate the full matrix using the mask to place calculated overlaps correctly
+                        indices = np.where(mask)[0]
+                        for i, idx_i in enumerate(indices):
+                            for j, idx_j in enumerate(indices):
+                                full_overlap_matrix[idx_i, idx_j] = calculated_overlap_matrix[i, j]
+                                full_overlap_matrix[idx_j, idx_i] = calculated_overlap_matrix[i, j]  # Symmetric
 
-                        # Check if all values are close enough
-                        if np.all(comparison_result):
-                            print("\n\nCalculated overlap matrix matches the ground truth.\n\n")
-                        else:
-                            print("\n\nDiscrepancy found in the calculated overlap matrix.\n\n")
-                        
+
+                        # Compare the calculated matrix with the ground truth
+                        try:
+                            print(f"Shape of full_overlap_matrix matrix: {full_overlap_matrix.shape}")
+                            print(f"Shape of ground truth overlap matrix: {ground_truth_overlap_matrix.shape}")
+                            print()
+                            comparison_result = np.isclose(full_overlap_matrix, ground_truth_overlap_matrix)
+                            print("---------------------Comparison result:\n", comparison_result, "---------------------------------")
+
+                            # Check if all values are close enough
+                            if np.all(comparison_result):
+                                print("\n\nCalculated overlap matrix matches the ground truth.\n\n")
+                            else:
+                                print("\n\nDiscrepancy found in the calculated overlap matrix.\n\n")
+                        except Exception as e:
+                            print(f"Error comparing calculated and ground truth overlap matrices: {str(e)} for {scene}")
+                            
                         # Save directories and file paths
                         import os
                         save_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets"
