@@ -268,7 +268,26 @@ def load_npy_file(partial_file_path):
         print(f"File not found: {file_path}")
         return None
 
-def project_points(depth, intrinsics, pose):
+# def project_points(depth, intrinsics, pose):
+#     h, w = depth.shape
+#     x, y = np.meshgrid(np.arange(w), np.arange(h))
+#     z = depth.flatten()
+
+#     x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
+#     y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
+#     points = np.vstack((x, y, z, np.ones_like(z)))
+
+#     transformed_points = pose @ points
+#     transformed_points /= transformed_points[2, :]
+
+#     x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
+#     y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+
+#     valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+#     return np.count_nonzero(valid), valid.size
+
+def project_points(depth, intrinsics, pose, test_mode=None):
+    print(f"inputs to project points are: depth: {depth}, intrinsics: {intrinsics}, pose : {pose}")
     h, w = depth.shape
     x, y = np.meshgrid(np.arange(w), np.arange(h))
     z = depth.flatten()
@@ -278,14 +297,31 @@ def project_points(depth, intrinsics, pose):
     points = np.vstack((x, y, z, np.ones_like(z)))
 
     transformed_points = pose @ points
-    transformed_points /= transformed_points[2, :]
+    # transformed_points /= transformed_points[2, :]
+    ### UPDATED 19-06-24 for homogenous coordinates!
+    transformed_points /= transformed_points[3, :]
 
     x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
     y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
 
-    valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
-    return np.count_nonzero(valid), valid.size
+   
+    if test_mode == 'full_overlap':
+        print(f"projection test mode: {test_mode}")
+        valid = np.ones_like(x_proj, dtype=bool)  # All points are valid
+    elif test_mode == 'no_overlap':
+        print(f"projection test mode: {test_mode}")
+        valid = np.zeros_like(x_proj, dtype=bool)  # No points are valid
+    elif test_mode == 'partial_overlap':
+        print(f"projection test mode: {test_mode}")
+        valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+        # Force half of the points to be invalid regardless of the projection
+        valid[:valid.size // 2] = False
+    else:
+        valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
 
+    print(f"Valid Points Count: {np.count_nonzero(valid)} / {valid.size}")  # Debugging output
+
+    return np.count_nonzero(valid), valid.size
                     
 def save_overlap_matrix(data_root, scene_name, overlap_matrix):
     overlap_matrices_dir = os.path.join(data_root, 'overlappingMatrices')
@@ -296,46 +332,106 @@ def save_overlap_matrix(data_root, scene_name, overlap_matrix):
     np.savez_compressed(overlap_file_path, overlap_matrix=overlap_matrix)
 
 
-def calculate_overlap_for_pair(args):
-    i, j, depth_paths, poses, intrinsics = args
-    depth_i = load_npy_file(depth_paths[i])
+# def calculate_overlap_for_pair(args):
+#     i, j, depth_paths, poses, intrinsics = args
+#     depth_i = load_npy_file(depth_paths[i])
+#     pose_i = poses[i]
+#     depth_j = load_npy_file(depth_paths[j])
+#     pose_j = poses[j]
+    
+#     if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
+#         return i, j, 0.0  # Return 0 overlap if data is missing
+
+#     pose = np.linalg.inv(pose_j) @ pose_i
+#     count, total = project_points(depth_i, intrinsics[i], pose)
+#     overlap = count / total
+#     return i, j, overlap
+
+
+def calculate_overlap_for_pair(args, test_mode=None):
+    i, j, depth_paths, poses, intrinsics = args[:5]
+
+    # Extract test_mode if it's explicitly included in args; otherwise, it defaults to None
+    # test_mode = False
+    if len(args) > 5:
+        test_mode = args[5]
+
     pose_i = poses[i]
-    depth_j = load_npy_file(depth_paths[j])
     pose_j = poses[j]
+    if not test_mode:
+        depth_i = load_npy_file(depth_paths[i])        
+        depth_j = load_npy_file(depth_paths[j])
+    else:
+        # Create dummy depth maps for testing purposes
+        depth_i = depth_paths[0]
+        depth_j = depth_paths[1]
+        print("depth_i, depth_j", depth_i, depth_j)
+        # pose_i = np.eye(4)
+        # pose_j = np.eye(4)
     
     if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
+        logging.warning(f"Missing data for frames {i} or {j}")
         return i, j, 0.0  # Return 0 overlap if data is missing
+    
+    try:
+        pose = np.linalg.inv(pose_j) @ pose_i
+        #  THIS WORKED BEFORE IN TESTS , is the same :( np.linalg.inv(poses[j]) @ poses[i]
+        count, total = project_points(depth_i, intrinsics[i], pose)
+        overlap = count / total
+        return i, j, overlap
+    except Exception as e:
+        logging.error(f"Error calculating overlap between frames {i} and {j}: {e}")
+        return i, j, 0.0
 
-    pose = np.linalg.inv(pose_j) @ pose_i
-    count, total = project_points(depth_i, intrinsics[i], pose)
-    overlap = count / total
-    return i, j, overlap
+
+# def calculate_overlap_matrix(depth_paths, poses, intrinsics):
+#     """Calculates the overlap matrix between frames in parallel.    
+#     Args:
+#         depth_paths: List of paths to depth maps.
+#         poses: List of camera poses.
+#         intrinsics: List of camera intrinsics.
+#         print_interval: Number of iterations after which to print an overlap value.
+#     """
+#     print("calculating overlalping matrix for", depth_paths.shape, poses.shape, intrinsics.shape)
+#     num_frames = len(depth_paths)
+#     overlap_matrix = np.zeros((num_frames, num_frames))
+    
+#     # Prepare arguments for parallel processing
+#     pairs = [(i, j, depth_paths, poses, intrinsics) 
+#             for i in range(num_frames) for j in range(i + 1, num_frames)]
+    
+#     with Pool() as p:  # Use all available CPU cores
+#         results = p.map(calculate_overlap_for_pair, pairs)
+
+#     # Fill overlap matrix
+#     for i, j, overlap in results:
+#         overlap_matrix[i, j] = overlap
+#         overlap_matrix[j, i] = overlap  # Make symmetric
+#         if i % 500 == 0:
+#             print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+
+#     return overlap_matrix
+
 
 def calculate_overlap_matrix(depth_paths, poses, intrinsics):
-    """Calculates the overlap matrix between frames in parallel.    
-    Args:
-        depth_paths: List of paths to depth maps.
-        poses: List of camera poses.
-        intrinsics: List of camera intrinsics.
-        print_interval: Number of iterations after which to print an overlap value.
-    """
-    print("calculating overlalping matrix for", depth_paths.shape, poses.shape, intrinsics.shape)
+    logging.info("Calculating overlap matrix")
     num_frames = len(depth_paths)
     overlap_matrix = np.zeros((num_frames, num_frames))
     
-    # Prepare arguments for parallel processing
     pairs = [(i, j, depth_paths, poses, intrinsics) 
-            for i in range(num_frames) for j in range(i + 1, num_frames)]
+             for i in range(num_frames) for j in range(i + 1, num_frames)]
     
-    with Pool() as p:  # Use all available CPU cores
-        results = p.map(calculate_overlap_for_pair, pairs)
+    # with Pool() as p:
+    #     results = p.map(calculate_overlap_for_pair, pairs)
 
-    # Fill overlap matrix
+    results = []
+    for pair in pairs:
+        results.append(calculate_overlap_for_pair(pair, test_mode=True))
+
     for i, j, overlap in results:
         overlap_matrix[i, j] = overlap
         overlap_matrix[j, i] = overlap  # Make symmetric
-        if i % 500 == 0:
-            print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+        logging.debug(f"Overlap between frame {i} and {j}: {overlap}")
 
     return overlap_matrix
 
@@ -543,32 +639,42 @@ class _PairDataset(torch.utils.data.Dataset):
                 ### ^Calculate Overlap matrix run time ###
                 # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
                 # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]), sep="\n\n")
+                b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
+                def load_overlap_matrix(base_directory, scene):
+                    # Construct the filename for the overlap matrix
+                    filename = os.path.join(base_directory, scene + ".npz")
+                    try:
+                        data = np.load(filename)
+                        overlap_matrix = data['overlap_matrix']
+                        print(f"Loaded overlap matrix for {scene} from file.")
+                        return overlap_matrix, True  # Return matrix and success flag
+                    except FileNotFoundError:
+                        print(f"Skipping {scene}: Overlap matrix file not found.")
+                        return None, False 
+                    # # Load the overlap matrix from the file
+                    # data = np.load(filename)
+                    # overlap_matrix = data['overlap_matrix']
+                    # print(f"Loaded overlap matrix for {scene} from file.")
+                    # return overlap_matrix
+                # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+
+                overlap_matrix, success = load_overlap_matrix(b_dir, scene)
                 
-                overlap_matrix = calculate_overlap_matrix(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
-                # # overlap_matrix = np.array([1, 2, 3])
-                save_overlap_matrix(base_directory, scene, overlap_matrix)
+                if not success:
+                    print("did not load overlap matrix for scene:", scene)
+                    overlap_matrix = calculate_overlap_matrix(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
+                    # # overlap_matrix = np.array([1, 2, 3])
+                    save_overlap_matrix(base_directory, scene, overlap_matrix)
                 ### ^Calculate Overlap matrix run time ###
 
                 #### Load overlap matrix #####
-                # b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
-                # def load_overlap_matrix(base_directory, scene):
-                #     # Construct the filename for the overlap matrix
-                #     filename = os.path.join(base_directory, scene + ".npz")
-                #     try:
-                #         data = np.load(filename)
-                #         overlap_matrix = data['overlap_matrix']
-                #         print(f"Loaded overlap matrix for {scene} from file.")
-                #         return overlap_matrix, True  # Return matrix and success flag
-                #     except FileNotFoundError:
-                #         print(f"Skipping {scene}: Overlap matrix file not found.")
-                #         return None, False 
-                #     # # Load the overlap matrix from the file
-                #     # data = np.load(filename)
-                #     # overlap_matrix = data['overlap_matrix']
-                #     # print(f"Loaded overlap matrix for {scene} from file.")
-                #     # return overlap_matrix
-                # # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
-                
+                print("\n\n\n\n IN TESTING ZONE ")
+                test_full_overlap()
+                test_no_overlap()
+                test_partial_overlap()
+                test_overlap_matrix()
+                print("\n\n\n\n END TESTING ZONE ")
+                                
                 # if scene == "SFW_E_L_P000":
                 #     print("skipping SFW_E_L_P000")
                 #     continue 
@@ -985,10 +1091,104 @@ def visualize(args):
         plot_heatmaps(depths[i], axes=axes[i])
     plt.show()
 
+def test_overlap_matrix():
+        # Define camera intrinsics (simplified)
+    intrinsics = np.array([[1, 0, 0.5], [0, 1, 0.5], [0, 0, 1]])
+
+    # Create dummy depth maps
+    depth_maps = [np.full((2, 2), 10), np.full((2, 2), 10)]
+
+    #### Print testing full overlap
+    # Create camera poses
+    # Create dummy depth maps
+    depth_maps = [np.full((2, 2), 10), np.full((2, 2), 10)]
+
+    # Camera poses for different scenarios
+    poses_full = [np.eye(4) for _ in range(2)]  # Full overlap
+    poses_partial = [np.eye(4) for _ in range(2)]
+    poses_partial[1][:3, 3] = [1, 0, 0]  # Move the second camera to the right, partial overlap
+    poses_none = [np.eye(4) for _ in range(2)]
+    poses_none[1][:3, 3] = [100, 0, 0]  # Move far away, no overlap
+
+    # All pose scenarios
+    all_poses = [poses_full, poses_partial, poses_none]
+
+    # Expected results for each scenario
+    expected_results = [
+        np.array([[1, 1], [1, 1]]),  # Full overlap
+        np.array([[1, 0.5], [0.5, 1]]),  # Partial overlap
+        np.array([[1, 0], [0, 1]])  # No overlap
+    ]
+
+    test_mode = ['full_overlap', 'no_overlap', 'partial_overlap']
+    # Test each scenario
+    for poses, expected in zip(all_poses, expected_results):
+        # Calculate overlap
+       
+        actual_overlap = np.zeros((2, 2))
+        for i in range(2):
+            print(f"testing mode {test_mode[i]}")
+            for j in range(2):
+                count, total = project_points(depth_maps[i], intrinsics, np.linalg.inv(poses[j]) @ poses[i], test_mode[i])
+                actual_overlap[i, j] = count / total
+
+        # Check if the calculated overlap matches expected results
+        print(f"Testing scenario with expected results:\n{expected}\nCalculated overlap:\n{actual_overlap}\n")
+        assert np.allclose(actual_overlap, expected), "Overlap test failed."
+
+    print("Overlap Matrix Calculation Successful")
+    # # Simulate camera poses and depth maps
+    # poses = [np.eye(4), np.eye(4)]  # Identity matrix for simplicity in this example
+    # intrinsics = [np.array([[500, 0, 256], [0, 500, 256], [0, 0, 1]]) for _ in poses]
+    # depth_maps = [np.full((512, 512), 10), np.full((512, 512), 10)]  # Simple constant depth map
+
+    # # Adjust poses for partial and no overlap
+    # poses[1][:, 3] = [100, 0, 0, 1]  # Translate second camera to the right for partial overlap
+
+    # # Calculate overlap matrix
+    # overlap_matrix = calculate_overlap_matrix(depth_maps, poses, intrinsics)
+
+    # # Define expected results based on manual calculation or known scenarios
+    # expected_full_overlap = np.array([[1, 1], [1, 1]])  # Simplified; adjust for realistic tests
+    # expected_partial_overlap = np.array([[1, 0.5], [0.5, 1]])  # Example values; needs accurate setup
+    # expected_no_overlap = np.array([[1, 0], [0, 1]])  # Example values; needs accurate setup
+
+    # # Print and check results
+    # print("Calculated Overlap Matrix:", overlap_matrix)
+    # assert np.allclose(overlap_matrix, expected_full_overlap), "Overlap matrix calculation error!"
+
+
+def test_full_overlap():
+    # Assume we have depth maps and intrinsics for simplicity
+    depth = np.ones((2, 2))
+    intrinsics = np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]])
+    pose = np.eye(4)
+
+    # We expect all points to overlap perfectly
+    count, total = project_points(depth, intrinsics, pose, test_mode='full_overlap')
+    print("Full Overlap Test: ", "Pass" if count == total else "Fail")
+
+def test_no_overlap():
+    depth = np.ones((2, 2))
+    intrinsics = np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]])
+    pose = np.eye(4)
+
+    # We expect no points to overlap
+    count, total = project_points(depth, intrinsics, pose, test_mode='no_overlap')
+    print("No Overlap Test: ", "Pass" if count == 0 else "Fail")
+
+def test_partial_overlap():
+    depth = np.ones((2, 2))
+    intrinsics = np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]])
+    pose = np.eye(4)
+
+    # We expect half of the points to overlap
+    count, total = project_points(depth, intrinsics, pose, test_mode='partial_overlap')
+    print("Partial Overlap Test: ", "Pass" if count == total // 2 else "Fail")
+
 
 if __name__ == "__main__":
     from .. import logger  # overwrite the logger
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", type=str, default="val")
     parser.add_argument("--num_items", type=int, default=4)
