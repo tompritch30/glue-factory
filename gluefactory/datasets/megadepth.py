@@ -706,10 +706,14 @@ def load_npy_file(partial_file_path):
     # Adjust file path as needed
     partial_path_elements = partial_file_path.split('/')
     if len(partial_path_elements) > 4:
-        modified_path = os.path.join('0001', partial_path_elements[-1]) 
+        modified_path = os.path.join(partial_path_elements[-4], partial_path_elements[-1]) 
         file_path = os.path.join(base_directory, modified_path)
     else:
         file_path = os.path.join(base_directory, partial_file_path)
+
+    # for idx, partial_path in enumerate(partial_path_elements):
+    #     print(f"Index: {idx}, Partial Path: {partial_path}")        
+        # Do something with the data
 
     # Print final path for verification
     # print("FINAL FILE PATH: ", file_path)
@@ -719,10 +723,27 @@ def load_npy_file(partial_file_path):
         with h5py.File(file_path, 'r') as f:
             # print("Available keys in the HDF5 file:", list(f.keys()))
             # Assuming the data you need is stored under a specific dataset name
-            data = f['depth'][:]  # Replace 'dataset_name' with the actual name    
+            data = depth_data = f['depth'][:]    
+            ### Temp plotting code for debugging, depth values loaded correctly
+            #  plt.figure(figsize=(10, 8))
+            # plt.imshow(depth_data, cmap='gray')
+            # plt.colorbar()
+            # plt.title(f'Depth Map Visualization {partial_path_elements[-1]}')
+
+            # save_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets"
+
+            # # Ensure the save directory exists
+            # if not os.path.exists(save_dir):
+            #     os.makedirs(save_dir)
+
+            # save_path = os.path.join(save_dir, partial_path_elements[-1] + '.png')
+            # plt.savefig(save_path)
+            # plt.close()
+            # print(f"Plot saved to: {save_path}")
         
-        print(f"{file_path} data shape: {data.shape}")
-        print(f"{file_path} data: {data}")
+            # print(f"{file_path} data shape: {data.shape}")
+            # print(f"{file_path} data: {data}")
+            # raise Exception
         return data
         # return np.load(file_path, allow_pickle=True)
     else:
@@ -747,7 +768,7 @@ def calculate_overlap_for_pair(args):
     pose = np.linalg.inv(pose_j) @ pose_i
     count, total = project_points(depth_i, intrinsics[i], pose)
     overlap = count / total
-    print("returning overlap values")
+    # print("returning overlap values")
     return i, j, overlap
 
 class _PairDataset(torch.utils.data.Dataset):
@@ -865,7 +886,7 @@ class _PairDataset(torch.utils.data.Dataset):
                     
                     print("about to claculate the overlap pairs")
                     with Pool() as p:  # Use all available CPU cores
-                        print("result calc")
+                        # print("result calc")
                         results = p.map(calculate_overlap_for_pair, pairs)
 
                     # Fill overlap matrix
@@ -920,52 +941,73 @@ class _PairDataset(torch.utils.data.Dataset):
                     depth_count, depth_none_count = sum(1 for depth in depth_paths if depth is not None), sum(1 for depth in depth_paths if depth is None)
                     pose_count, pose_none_count = sum(1 for pose in poses if pose is not None), sum(1 for pose in poses if pose is None)
 
-                    # Print the counts
-                    print("Number of non-None depth paths:", depth_count)
-                    print("Number of non-None poses:", pose_count)
-                    print("Number of None depth paths:", depth_none_count)
-                    print("Number of None poses:", pose_none_count)
+                    maxVal = 50
+                    if depth_count < maxVal: 
+                        # Print the counts
+                        print("Number of non-None depth paths:", depth_count)
+                        print("Number of non-None poses:", pose_count)
+                        print("Number of None depth paths:", depth_none_count)
+                        print("Number of None poses:", pose_none_count)
+                        print(f"All data present, and less than {maxVal}!. Proceeding with overlap calculation.")                        
 
-                    print("All data present. Proceeding with overlap calculation.")
-                    
+                        # Create a boolean mask where None values are marked as False
+                        # Create masks for non-None entries
+                        mask_depth = np.array([dp is not None for dp in depth_paths])
+                        mask_poses = np.array([ps is not None for ps in poses])
+                        mask_intrinsics = np.array([intrinsic is not None for intrinsic in intrinsics])
 
-                    # Create a boolean mask where None values are marked as False
-                    # Create masks for non-None entries
-                    mask_depth = np.array([dp is not None for dp in depth_paths])
-                    mask_poses = np.array([ps is not None for ps in poses])
-                    mask_intrinsics = np.array([intrinsic is not None for intrinsic in intrinsics])
+                        # Combine masks to keep only entries where all corresponding elements are not None
+                        mask = mask_depth & mask_poses & mask_intrinsics
 
-                    # Combine masks to keep only entries where all corresponding elements are not None
-                    mask = mask_depth & mask_poses & mask_intrinsics
-
-                    # Filter arrays using the combined mask
-                    filtered_depth_paths = depth_paths[mask]
-                    filtered_poses = poses[mask]
-                    filtered_intrinsics = intrinsics[mask]
+                        # Filter arrays using the combined mask
+                        filtered_depth_paths = depth_paths[mask]
+                        filtered_poses = poses[mask]
+                        filtered_intrinsics = intrinsics[mask]
 
 
-                    assert(len(filtered_depth_paths) == depth_count and len(filtered_poses) == pose_count)
-                    
-                    # Calculate the overlap matrix
-                    calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
+                        assert(len(filtered_depth_paths) == depth_count and len(filtered_poses) == pose_count)
+                        
+                        # Calculate the overlap matrix
+                        calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
 
-                    # Compare the calculated matrix with the ground truth
-                    comparison_result = np.isclose(calculated_overlap_matrix, ground_truth_overlap_matrix)
-                    print("Comparison result:\n", comparison_result)
+                        # Compare the calculated matrix with the ground truth
+                        comparison_result = np.isclose(calculated_overlap_matrix, ground_truth_overlap_matrix)
+                        print("---------------------Comparison result:\n", comparison_result, "---------------------------------")
 
-                    # Check if all values are close enough
-                    if np.all(comparison_result):
-                        print("Calculated overlap matrix matches the ground truth.")
-                    else:
-                        print("Discrepancy found in the calculated overlap matrix.")
+                        # Check if all values are close enough
+                        if np.all(comparison_result):
+                            print("\n\nCalculated overlap matrix matches the ground truth.\n\n")
+                        else:
+                            print("\n\nDiscrepancy found in the calculated overlap matrix.\n\n")
+                        
+                        # Save directories and file paths
+                        import os
+                        save_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets"
+                        calculated_path = os.path.join(save_dir, f"{scene}_calculated_overlap.npy")
+                        ground_truth_path = os.path.join(save_dir, f"{scene}_ground_truth_overlap.npy")
+
+                        # Ensure the save directory exists
+                        if not os.path.exists(save_dir):
+                            os.makedirs(save_dir)
+
+                        # Save the calculated overlap matrix
+                        np.save(calculated_path, calculated_overlap_matrix)
+                        print(f"Calculated overlap matrix saved to: {calculated_path}")
+
+                        # Save the ground truth overlap matrix
+                        np.save(ground_truth_path, ground_truth_overlap_matrix)
+                        print(f"Ground truth overlap matrix saved to: {ground_truth_path}")
                 
             except Exception as e:
-                print(f"Failed to load data for scene {scene}: {str(e)}")
+                
                 if count < 2:
+                    print(f"Failed to load data for scene {scene}: {str(e)}")
                     logger.warning(
                         "Cannot load scene info for scene %s at %s.", scene, path
                     )
-                raise Exception
+                count +=1
+                continue
+                # raise Exception
                 # continue
             
             # if count < 2:
@@ -1073,19 +1115,19 @@ class _PairDataset(torch.utils.data.Dataset):
                 # assert path.exists(), path
                 info = np.load(str(path), allow_pickle=True)
                 # # limited_logger.log("str(path)", str(path))
-                print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
+                # print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
-                print("valid array:", valid)
+                # print("valid array:", valid)
 
                 ind = np.where(valid)[0]
-                print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
+                # print( "info[overlap_matrix].shape", info["overlap_matrix"].shape)
                 #print( "info[overlap_matrix]", info["overlap_matrix"])
 
                 mat = info["overlap_matrix"][valid][:, valid]
                 # print("mat", mat)
-                print("mat shape", mat.shape)
+                # print("mat shape", mat.shape)
                 # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
                 
 
@@ -1120,7 +1162,7 @@ class _PairDataset(torch.utils.data.Dataset):
                     pairs = np.stack(np.where(pairs), -1)
 
                 # print(f"\n\ninput to megadepth pairs is {pairs}")
-                print(pairs.shape)
+                # print(pairs.shape)
                 pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                 if num_neg is not None:
                     neg_pairs = np.stack(np.where(mat <= 0.0), -1)
@@ -1138,11 +1180,11 @@ class _PairDataset(torch.utils.data.Dataset):
         path = self.root / self.images[scene][idx]
         ### I added
        #  # logger.info(f"Reading view from {path}")
-        print("path, self.root , self.images[scene][idx]", path, self.root , self.images[scene][idx])
+        # print("path, self.root , self.images[scene][idx]", path, self.root , self.images[scene][idx])
         # read pose data
-        print("scene, idx", scene, idx)
-        print("self.intrinsics[scene][idx].shape", self.intrinsics[scene][idx].shape)
-        print("self.poses[scene][idx].shape", self.poses[scene][idx].shape)
+        # print("scene, idx", scene, idx)
+        # print("self.intrinsics[scene][idx].shape", self.intrinsics[scene][idx].shape)
+        # print("self.poses[scene][idx].shape", self.poses[scene][idx].shape)
         # read pose data
         K = self.intrinsics[scene][idx].astype(np.float32, copy=False)
         T = self.poses[scene][idx].astype(np.float32, copy=False)
