@@ -542,6 +542,7 @@ scene_lists_path = Path(__file__).parent / "megadepth_scene_lists"
 
 """
 python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
+python -m gluefactory.train sp+lg_debug     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
 """
 
 import logging, threading
@@ -656,6 +657,90 @@ class MegaDepth(BaseDataset):
         else:
             return _PairDataset(self.conf, split)
 
+def project_points(depth, intrinsics, pose):
+    h, w = depth.shape
+    x, y = np.meshgrid(np.arange(w), np.arange(h))
+    z = depth.flatten()
+
+    x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
+    y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
+    points = np.vstack((x, y, z, np.ones_like(z)))
+
+    transformed_points = pose @ points
+    transformed_points /= transformed_points[2, :]
+
+    x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
+    y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+
+    valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+    return np.count_nonzero(valid), valid.size
+
+# def load_npy_file(partial_file_path):
+#     import os
+#     base_directory = DATA_PATH
+#     # base_directory = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/data/")
+#     # base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
+#     print("BASE DIRECTORY: ", base_directory, "Partial file path ", partial_file_path)
+#     file_path = os.path.join(base_directory, partial_file_path)
+#     print("FILE PATH: ", file_path)
+
+#     if os.path.exists(file_path):
+#         return np.load(file_path)
+#     else:
+#         print(f"File not found: {file_path}")
+#         raise Exception
+#         return None
+
+def load_npy_file(partial_file_path):
+    import os
+    # Define the correct base directory
+    base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/megadepth/depth_undistorted"
+
+    # Print initial path details for debugging
+    # print("BASE DIRECTORY: ", base_directory, "Partial file path ", partial_file_path)
+
+    # /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/megadepth/depth_undistorted/0001
+    # /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/megadepth/depth_undistorted/0001/dense0/depths/2750838037_06ac72a948_o.h5
+
+
+    # Adjust file path as needed
+    partial_path_elements = partial_file_path.split('/')
+    if len(partial_path_elements) > 4:
+        modified_path = os.path.join('0001', partial_path_elements[-1]) 
+        file_path = os.path.join(base_directory, modified_path)
+    else:
+        file_path = os.path.join(base_directory, partial_file_path)
+
+    # Print final path for verification
+    # print("FINAL FILE PATH: ", file_path)
+
+    # Check if the file exists and load it
+    if os.path.exists(file_path):
+        return np.load(file_path, allow_pickle=True)
+    else:
+        print(f"File not found: {file_path}")
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+def calculate_overlap_for_pair(args):
+    # print("calculating overlap for pairs!!!")
+    i, j, depth_paths, poses, intrinsics = args
+    # print(f"Calculating overlap for pair {i}-{j}")
+    # print(f"Depth Path i: {depth_paths[i]}")
+    # print(f"Depth Path j: {depth_paths[j]}")
+
+    depth_i = load_npy_file(depth_paths[i])
+    pose_i = poses[i]
+    depth_j = load_npy_file(depth_paths[j])
+    pose_j = poses[j]
+    
+    if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
+        return i, j, 0.0  # Return 0 overlap if data is missing
+
+    pose = np.linalg.inv(pose_j) @ pose_i
+    count, total = project_points(depth_i, intrinsics[i], pose)
+    overlap = count / total
+    print("returning overlap values")
+    return i, j, overlap
 
 class _PairDataset(torch.utils.data.Dataset):
     def __init__(self, conf, split, load_sample=True):
@@ -711,6 +796,8 @@ class _PairDataset(torch.utils.data.Dataset):
             
             try:
                 info = np.load(str(path), allow_pickle=True)
+                
+
                 # ### I added
                 # if count == 6:
                 #     # logger.info(f"Loaded scene info for {scene}: {info.keys()}")
@@ -745,13 +832,133 @@ class _PairDataset(torch.utils.data.Dataset):
                 #     #         # # limited_logger.log(f"{key}: type={type(data)}, shape={getattr(data, 'shape', 'N/A')}")
                 #     #     else:
                 #     #         # limited_logger.log(f"{key} is None")
+                # print(f"Depth Paths: {info['depth_paths']}\n\n")
+                # print(f"Intrinsics: {info['intrinsics']}\n\n")
+                # print(f"Poses: {info['poses']}\n\n")
                 
-            except Exception:
+                
+                def calculate_overlap_matrix(depth_paths, poses, intrinsics):
+                    """Calculates the overlap matrix between frames in parallel.    
+                    Args:
+                        depth_paths: List of paths to depth maps.
+                        poses: List of camera poses.
+                        intrinsics: List of camera intrinsics.
+                        print_interval: Number of iterations after which to print an overlap value.
+                    """
+                    from multiprocessing import Pool
+
+                    print("!!!calculating overlalping matrix for", depth_paths.shape, poses.shape, intrinsics.shape)
+                    num_frames = len(depth_paths)
+                    overlap_matrix = np.zeros((num_frames, num_frames))
+                    
+                    # Prepare arguments for parallel processing
+                    pairs = [(i, j, depth_paths, poses, intrinsics) 
+                            for i in range(num_frames) for j in range(i + 1, num_frames)]
+                    
+                    print("about to claculate the overlap pairs")
+                    with Pool() as p:  # Use all available CPU cores
+                        print("result calc")
+                        results = p.map(calculate_overlap_for_pair, pairs)
+
+                    # Fill overlap matrix
+                    for i, j, overlap in results:
+                        overlap_matrix[i, j] = overlap
+                        overlap_matrix[j, i] = overlap  # Make symmetric
+                        if i % 500 == 0:
+                            print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+
+                    return overlap_matrix
+
+                # print(info["overlap_matrix"])
+
+                depth_paths = info["depth_paths"]
+                poses = info["poses"]
+                intrinsics = info["intrinsics"]
+                ground_truth_overlap_matrix = info["overlap_matrix"]
+
+                """
+                1) CHeck this in same format as expected/is for treedepth:
+                                    Depth Paths: ['phoenix/S6/zl548/MegaDepth_v1/0189/dense0/depths/17873346101_bd320a0869_o.h5'
+                    None None ... None None None]
+
+
+                    Intrinsics: [array([[1.57790e+03, 0.00000e+00, 5.33000e+02],
+                            [0.00000e+00, 1.57801e+03, 8.00000e+02],
+                            [0.00000e+00, 0.00000e+00, 1.00000e+00]]) None None ... None None
+                    None]
+
+
+                    Poses: [array([[-0.98438464, -0.07556228, -0.15898812, -0.713126  ],
+                            [ 0.07904087,  0.61728158, -0.78276177, -1.86648   ],
+                            [ 0.1572877 , -0.78310522, -0.60167   , -2.36769   ],
+                            [ 0.        ,  0.        ,  0.        ,  1.        ]]) None None
+                    ... None None None]
+                2) Check if depth path are all none, have acount
+                """
+                # # Count the number of non-None values in depth_paths and poses
+                # depth_count = sum(1 for depth in depth_paths if depth is not None)
+                # pose_count = sum(1 for pose in poses if pose is not None)
+
+                # # Print the counts
+                # print("Number of non-None depth paths:", depth_count)
+                # print("Number of non-None poses:", pose_count)
+                # # Number of non-None depth paths: 496
+                # # Number of non-None poses: 496
+
+                # Check if any value is None in depth_paths, poses, or intrinsics
+                if all(x is None for x in depth_paths) or all(x is None for x in poses) or all(x is None for x in intrinsics):
+                    print(f"Skipping overlap calculation due to ALL NONE data in {scene}.")
+                else:
+                    depth_count, depth_none_count = sum(1 for depth in depth_paths if depth is not None), sum(1 for depth in depth_paths if depth is None)
+                    pose_count, pose_none_count = sum(1 for pose in poses if pose is not None), sum(1 for pose in poses if pose is None)
+
+                    # Print the counts
+                    print("Number of non-None depth paths:", depth_count)
+                    print("Number of non-None poses:", pose_count)
+                    print("Number of None depth paths:", depth_none_count)
+                    print("Number of None poses:", pose_none_count)
+
+                    print("All data present. Proceeding with overlap calculation.")
+                    
+
+                    # Create a boolean mask where None values are marked as False
+                    # Create masks for non-None entries
+                    mask_depth = np.array([dp is not None for dp in depth_paths])
+                    mask_poses = np.array([ps is not None for ps in poses])
+                    mask_intrinsics = np.array([intrinsic is not None for intrinsic in intrinsics])
+
+                    # Combine masks to keep only entries where all corresponding elements are not None
+                    mask = mask_depth & mask_poses & mask_intrinsics
+
+                    # Filter arrays using the combined mask
+                    filtered_depth_paths = depth_paths[mask]
+                    filtered_poses = poses[mask]
+                    filtered_intrinsics = intrinsics[mask]
+
+
+                    assert(len(filtered_depth_paths) == depth_count and len(filtered_poses) == pose_count)
+                    
+                    # Calculate the overlap matrix
+                    calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
+
+                    # Compare the calculated matrix with the ground truth
+                    comparison_result = np.isclose(calculated_overlap_matrix, ground_truth_overlap_matrix)
+                    print("Comparison result:\n", comparison_result)
+
+                    # Check if all values are close enough
+                    if np.all(comparison_result):
+                        print("Calculated overlap matrix matches the ground truth.")
+                    else:
+                        print("Discrepancy found in the calculated overlap matrix.")
+                
+            except Exception as e:
+                print(f"Failed to load data for scene {scene}: {str(e)}")
                 if count < 2:
                     logger.warning(
                         "Cannot load scene info for scene %s at %s.", scene, path
                     )
-                continue
+                raise Exception
+                # continue
             
             # if count < 2:
             #     # limited_logger.log("info loaded from str(path)", str(path))
