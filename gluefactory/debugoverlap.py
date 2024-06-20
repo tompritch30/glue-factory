@@ -12,7 +12,8 @@ The plan:
 6) see if dataset online with using depth, intrinsics and pose to see if can get the same overlap matrix
 7) check the overlap matrix is correct by visualizing it?? or checking the values
 8) see if correct way to calc overlap matrix, should we be using flow info to verify it on treedepth?
-
+9) for tree depth check the difference between pose left and right and see if the file repeats itself on the original download. 
+=10) snip the overlap matrix to 3x3 and compare to the ground truth overlap matrix
 """
 
 def load_and_compare_matrices():

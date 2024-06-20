@@ -29,18 +29,20 @@ from multiprocessing import Pool
 
 
 logger = logging.getLogger(__name__)
-partial_mode = True
+partial_mode = False
 
 if partial_mode:
     scene_lists_path = Path(__file__).parent / "tartanSceneLists(Partial)"
 else:
-    scene_lists_path = Path(__file__).parent / "tartanSceneLists"
+    scene_lists_path = Path(__file__).parent / "tartanSceneLists(Full)"
 
 """
 python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
 python -m gluefactory.train sp+lg_treedepthPartial     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
+python -m gluefactory.train sp+lg_treedepthPartial     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
+python -m gluefactory.train sp+lg_treedepthdebug     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 """
 
 
@@ -118,10 +120,11 @@ import os
 
 def load_scene_data(base_dir, scene):
     # fix this
-    if not partial_mode:
+    if partial_mode == False:
         fileListDir = base_dir + '/fileLists'
     else:
         fileListDir = base_dir + '/fileListsPartial'
+    print(f"fileListDir: {fileListDir}")
     
     # Removing 'L_' or 'R_' for pose files naming
     flow_scene = scene.replace('_L', '').replace('_R', '')
@@ -146,7 +149,6 @@ def load_scene_data(base_dir, scene):
     depth_data = load_data_from_file(depth_file_path)
     image_data = load_data_from_file(image_file_path)
     flow_data = load_data_from_file(flow_file_path)
-
 
     
     def pose_to_matrix(pose):
@@ -177,11 +179,12 @@ def load_scene_data(base_dir, scene):
     # Handle pose data based on scene naming
     poses = []
 
-    if partial_mode != True:
+    if partial_mode == False:
+        # Full data loading
         if '_L_' in scene:
-            pose_file_path = os.path.join(base_dir, "poseDataPartial", f"{scene}_pose_left.txt")
+            pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_left.txt")
         elif '_R_' in scene:
-            pose_file_path = os.path.join(base_dir, "poseDataPartial", f"{scene}_pose_right.txt")
+            pose_file_path = os.path.join(base_dir, "poseData", f"{scene}_pose_right.txt")
         else:
             print("Neither L nor R in scene identifier. Check naming convention!")
     else: # For partial mode
@@ -248,6 +251,11 @@ def load_scene_data(base_dir, scene):
         print(f"LENGTH ASSERTION: Scene: {scene}, image_data: {len(image_data)}, depth_data: {len(depth_data)}, flow_data: {len(flow_data)}, poses: {len(poses)}")
         # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
+    # print(f"image_paths shape: {len(image_data)}")
+    # print(f"depth_paths shape: {len(depth_data)}")
+    # print(f"flow_data shape: {len(flow_data)}")
+    # print(f"intrinsics shape: {camera_intrinsics.shape}")
+    # print(f"poses shape: {len(poses)}")
 
     return {
         "image_paths": image_data,
@@ -359,6 +367,7 @@ def calculate_overlap_for_pair(args, test_mode=None):
     pose_i = poses[i]
     pose_j = poses[j]
     if not test_mode:
+        print("loading depth data in calc overlap for pair")
         depth_i = load_npy_file(depth_paths[i])        
         depth_j = load_npy_file(depth_paths[j])
     else:
@@ -381,6 +390,7 @@ def calculate_overlap_for_pair(args, test_mode=None):
         return i, j, overlap
     except Exception as e:
         logging.error(f"Error calculating overlap between frames {i} and {j}: {e}")
+        # raise Exception("calculate overlap fair)")
         return i, j, 0.0
 
 
@@ -426,7 +436,8 @@ def calculate_overlap_matrix(depth_paths, poses, intrinsics):
 
     results = []
     for pair in pairs:
-        results.append(calculate_overlap_for_pair(pair, test_mode=True))
+        #### WILL NOT USE THE TEST MODE FOR CACL!!!
+        results.append(calculate_overlap_for_pair(pair, test_mode=False))
 
     for i, j, overlap in results:
         overlap_matrix[i, j] = overlap
@@ -444,7 +455,10 @@ class _PairDataset(torch.utils.data.Dataset):
 
         # redefine it
         # bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists")
-        scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists(Partial)")
+        if not partial_mode:
+            scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists(Full)")
+        else:
+            scene_lists_path = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets/tartanSceneLists(Partial)")
 
         split_conf = conf[split + "_split"]
         if isinstance(split_conf, (str, Path)):            
@@ -508,6 +522,14 @@ class _PairDataset(torch.utils.data.Dataset):
             
             base_directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData"
             info = load_scene_data(base_directory, scene)
+
+            # print(f"Depth Paths type: {type(info['depth_paths'])}\n\n")
+            # print(f"Intrinsics type: {type(info['intrinsics'])}\n\n")
+            # print(f"Poses type: {type(info['poses'])}\n\n")
+            # print(f"Depth Paths: {info['depth_paths']}\n\n")
+            # print(f"Intrinsics: {info['intrinsics']}\n\n")
+            # print(f"Poses: {info['poses']}\n\n")
+                
             
             ## I added 16-06-24 for having each as shape attribute
             self.images[scene] = np.array(info["image_paths"])
@@ -612,7 +634,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 # print(f"Removing  images: {self.images[scene][-size_diff:]}")  # Print the removed image
                 # self.images[scene] = self.images[scene][:-size_diff]
                 
-                # have psoe files in imageData
+                # have psoe files in imageData folder
                 self.images[scene] = [img for img in self.images[scene] if "pose" not in img]
 
                 # 3. Perform your validation after trimming
@@ -621,6 +643,7 @@ class _PairDataset(torch.utils.data.Dataset):
                 self.images[scene] = np.array(self.images[scene])
                 self.depths[scene] = np.array(self.depths[scene])
                 # print("self.images[scene].shape, self.depths[scene].shape", self.images[scene].shape, self.depths[scene].shape)
+                
                 valid = (self.images[scene] != None) & (  # noqa: E711
                     self.depths[scene] != None  # noqa: E711
                 )
@@ -658,11 +681,82 @@ class _PairDataset(torch.utils.data.Dataset):
                     # return overlap_matrix
                 # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
 
-                overlap_matrix, success = load_overlap_matrix(b_dir, scene)
+                ##'######## overlapoooo
+                # if False or artial_mode == False:
+                #     overlap_matrix, success = load_overlap_matrix(b_dir, scene)
                 
+                ############ overlapoooo
+                success = False
+                if partial_mode:
+                    success = False  # Force recalculation of overlap matrix
+
+                """
+                
+                """
+
                 if not success:
-                    print("did not load overlap matrix for scene:", scene)
-                    overlap_matrix = calculate_overlap_matrix(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
+                    print("did not load overlap matrix for scene:", scene)                    
+                    
+                    depth_paths = np.array(info["depth_paths"])
+                    poses = np.array(info["poses"])
+                    intrinsics = np.array(info["intrinsics"])
+                    
+                    print(f"depth_paths.shape: {depth_paths.shape}")
+                    print(f"poses.shape: {poses.shape}")
+                    print(f"intrinsics.shape: {intrinsics.shape}")
+                    """
+                    depth_paths.shape: (3,)
+                    poses.shape: (3, 4, 4)
+                    intrinsics.shape: (6, 3, 3)
+
+                    depth_paths: ['depthData/SF_E_L_APartial/000000_left_depth.npy'
+                    'depthData/SF_E_L_APartial/000001_left_depth.npy'
+                    'depthData/SF_E_L_APartial/000002_left_depth.npy']
+                    poses: [[[-7.17845000e-01  6.96202956e-01  0.00000000e+00  5.53746414e+01]
+                    [-6.96202956e-01 -7.17845000e-01  0.00000000e+00 -2.64403152e+01]
+                    [ 0.00000000e+00  0.00000000e+00  1.00000000e+00 -9.90465045e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[-7.09192097e-01  7.04933809e-01  1.07188313e-02  5.54618149e+01]
+                    [-7.05003892e-01 -7.09012179e-01 -1.64694201e-02 -2.63598995e+01]
+                    [-4.01006915e-03 -1.92368004e-02  9.99806914e-01 -9.21572864e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[-6.99696462e-01  7.14067656e-01  2.30704096e-02  5.54505005e+01]
+                    [-7.14388747e-01 -6.98893452e-01 -3.45927944e-02 -2.62395477e+01]
+                    [-8.57783747e-03 -4.06856969e-02  9.99135173e-01 -8.79076540e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
+                    intrinsics: [[[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]]
+                    """
+                    print()
+                    print(f"depth_paths: {depth_paths}")
+                    print(f"poses: {poses}")                    
+                    print(f"intrinsics: {intrinsics}")
+                    
+                    # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
+                    overlap_matrix = calculate_overlap_matrix(depth_paths, poses, intrinsics)
                     # # overlap_matrix = np.array([1, 2, 3])
                     save_overlap_matrix(base_directory, scene, overlap_matrix)
                 ### ^Calculate Overlap matrix run time ###
