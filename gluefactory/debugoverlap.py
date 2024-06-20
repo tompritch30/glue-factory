@@ -1,6 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+The plan:
+1) check input for pose, depth, and intrinsics is same format for both the treedepth and for megadepth (espeically pose quaternion etc + if intrinsics hardcoded in case not overwritten)
+2) if need convert pose use the lightglue utils to convert
+3) check that calling and loading the correct matrices for files + try on other matrices that isnt just the 46 x 46 one
+3) check the projectr 2D_to_3D etc keys in the info dictionary and see if that helps / can be used
+4) Check the -1 values are in the positions for all the None values or whether that is just the problem
+5) Check if different way to calc overlap matrix / check the github repo to see if helps:https://github.com/mzjb/overlap-only-OpenMX/blob/main/README.md
+6) see if dataset online with using depth, intrinsics and pose to see if can get the same overlap matrix
+7) check the overlap matrix is correct by visualizing it?? or checking the values
+8) see if correct way to calc overlap matrix, should we be using flow info to verify it on treedepth?
+
+"""
+
 def load_and_compare_matrices():
     # Paths to the saved matrices
     """
