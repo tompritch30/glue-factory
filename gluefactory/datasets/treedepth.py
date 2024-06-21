@@ -167,14 +167,16 @@ def load_scene_data(base_dir, scene):
         return transformation_matrix
 
     def load_poses_from_file(file_path):
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-                # return as 4x4 matrix as expected
-                return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
+        poses = load_data_from_file(file_path)
+        return np.array([pose_to_matrix(np.fromstring(pose, sep=' ')) for pose in poses], dtype=object)
+        # if os.path.exists(file_path):
+        #     with open(file_path, 'r') as file:
+        #         lines = file.readlines()
+        #         # return as 4x4 matrix as expected
+        #         return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
 
-        else:
-            return np.array([])
+        # else:
+        #     return np.array([])
 
     # Handle pose data based on scene naming
     poses = []
@@ -197,6 +199,10 @@ def load_scene_data(base_dir, scene):
 
     length = max(len(depth_data), len(image_data), len(flow_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
+    # HAVE TO HALF THE LENGTH AS INTRINSICS ARE THE SAME FOR LEFT AND RIGHT
+    print(f"Length of data: {length}")
+    length //= 2
+    print(f"NEW Length of data: {length}")
     camera_intrinsics = np.array([K] * length)
 
     # print(len(image_data), len(depth_data), len(flow_data), len(poses))
@@ -257,6 +263,55 @@ def load_scene_data(base_dir, scene):
     # print(f"intrinsics shape: {camera_intrinsics.shape}")
     # print(f"poses shape: {len(poses)}")
 
+    image_data = np.array(image_data)
+    depth_data = np.array(depth_data)
+    flow_data = np.array(flow_data)
+    camera_intrinsics = np.array(camera_intrinsics)
+    poses = np.array(poses)
+
+    
+    for i, (image, flow, camera) in enumerate(zip(image_data, flow_data, camera_intrinsics)):
+        image_data[i] = np.array(image, dtype=object)
+        # depth_data[i] = np.array(depth, dtype=object)
+        try:
+            flow_data[i] = np.array(flow, dtype=object)
+        except:
+            print(f"{i} out of bounds for flow data")    
+        camera_intrinsics[i] = np.array(camera, dtype=object)
+    
+    # for image in image_data:
+    #     np.array(image, dtype=object)
+    depth_paths = depth_data = np.array(depth_data)
+    intrinsics = camera_intrinsics
+    print(f"Type of depth_paths: {type(depth_paths)}")
+    print(f"Length of depth_paths: {len(depth_paths)}")
+    print(f"Shape of depth_paths: {depth_paths.shape}")                
+
+    print(f"Type of poses: {type(poses)}")
+    print(f"Length of poses: {len(poses)}")
+    print(f"Shape of poses: {poses.shape}")    
+
+    print(f"Type of poses[0]: {type(poses[0])}")
+    print(f"Shape of poses[0]: {poses.shape[0]}")
+    print()
+
+    try:
+        print(f"Type of poses[0][0]: {type(poses[0][0])}")
+        print(f"Shape of poses[0][0]: {poses.shape[0][0]}")
+        print()
+    except:
+        print("could not [][] index into poses")
+
+
+    print(f"Type of intrinsics: {type(intrinsics)}")
+    print(f"Length of intrinsics: {len(intrinsics)}")
+    print(f"Shape of intrinsics: {intrinsics.shape}")
+
+    print(f"Type of image_paths: {type(image_data)}")
+    print(f"Length of image_paths: {len(image_data)}")
+    print(f"Shape of image_paths: {image_data.shape}")
+    raise Exception("stop loading data in")
+
     return {
         "image_paths": image_data,
         "depth_paths": depth_data,
@@ -295,7 +350,7 @@ def load_npy_file(partial_file_path):
 #     return np.count_nonzero(valid), valid.size
 
 def project_points(depth, intrinsics, pose, test_mode=None):
-    print(f"inputs to project points are: depth: {depth}, intrinsics: {intrinsics}, pose : {pose}")
+    # print(f"inputs to project points are: depth: {depth}, intrinsics: {intrinsics}, pose : {pose}")
     h, w = depth.shape
     x, y = np.meshgrid(np.arange(w), np.arange(h))
     z = depth.flatten()
@@ -532,10 +587,10 @@ class _PairDataset(torch.utils.data.Dataset):
                 
             
             ## I added 16-06-24 for having each as shape attribute
-            self.images[scene] = np.array(info["image_paths"])
-            self.depths[scene] = np.array(info["depth_paths"])
-            self.poses[scene] = np.array(info["poses"])            
-            self.intrinsics[scene] = np.array(info["intrinsics"])
+            self.images[scene] = info["image_paths"]
+            self.depths[scene] = info["depth_paths"]
+            self.poses[scene] = info["poses"]   
+            self.intrinsics[scene] = info["intrinsics"]
             # c = 0
             # if c < 1:
             #     print("image, depth, pose, intrinsrtic", info["image_paths"].shape, info["depth_paths"].shape, info["poses"].shape, info["intrinsics"].shape, sep="\n")
@@ -698,12 +753,92 @@ class _PairDataset(torch.utils.data.Dataset):
                     print("did not load overlap matrix for scene:", scene)                    
                     
                     depth_paths = np.array(info["depth_paths"])
-                    poses = np.array(info["poses"])
-                    intrinsics = np.array(info["intrinsics"])
-                    
-                    print(f"depth_paths.shape: {depth_paths.shape}")
-                    print(f"poses.shape: {poses.shape}")
-                    print(f"intrinsics.shape: {intrinsics.shape}")
+
+                    # Create a list of numpy arrays for poses and intrinsics
+                    poses = [np.array(pose, dtype=object) for pose in info["poses"]]
+                    intrinsics = [np.array(intrin, dtype=object) for intrin in info["intrinsics"]]
+
+                    # Convert list of numpy arrays to numpy array of objects
+                    poses = np.array(poses)
+                    intrinsics = np.array(intrinsics)
+
+                    # poses = np.array([np.array([pose]) for pose in poses])
+                    # intrinsics = np.array(info["intrinsics"])
+                    # # Adjust to be in foramt [ array([[#2D array 4x4 matrix]]) 
+                    # # TEMPORARY FIX FOR HVAING THE INSTRICS TWICE
+                    # intrinsics = np.array(np.array([intrinsics[i]]) for i in range(depth_paths.shape[0]))
+                    print(f"Type of depth_paths: {type(depth_paths)}")
+                    print(f"Length of depth_paths: {len(depth_paths)}")
+                    print(f"Shape of depth_paths: {depth_paths.shape}")                
+
+                    print(f"Type of poses: {type(poses)}")
+                    print(f"Length of poses: {len(poses)}")
+                    print(f"Shape of poses: {poses.shape}")
+
+                    print(f"Type of intrinsics: {type(intrinsics)}")
+                    print(f"Length of intrinsics: {len(intrinsics)}")
+                    print(f"Shape of intrinsics: {intrinsics.shape}")
+
+                    """
+                    did not load overlap matrix for scene: SFW_E_L_P000
+                    depth_paths.shape: (2329,)
+                    poses.shape: (2329, 4, 4)
+                    intrinsics.shape: (4658, 3, 3)
+
+                    depth_paths: ['depthData/SFW_E_L_P000/000000_left_depth.npy'
+                    'depthData/SFW_E_L_P000/000001_left_depth.npy'
+                    'depthData/SFW_E_L_P000/000002_left_depth.npy' ...
+                    'depthData/SFW_E_L_P000/002326_left_depth.npy'
+                    'depthData/SFW_E_L_P000/002327_left_depth.npy'
+                    'depthData/SFW_E_L_P000/002328_left_depth.npy']
+                    poses: [[[-7.53328596e-01  6.57644301e-01  0.00000000e+00  1.86386890e+01]
+                    [-6.57644301e-01 -7.53328596e-01  0.00000000e+00  1.40494499e+01]
+                    [ 0.00000000e+00  0.00000000e+00  1.00000000e+00  9.07383382e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[-7.55561874e-01  6.55076187e-01 -1.20110294e-03  1.85503712e+01]
+                    [-6.55077233e-01 -7.55559786e-01  1.79676355e-03  1.39741745e+01]
+                    [ 2.69511938e-04  2.14438122e-03  9.99997664e-01  8.24409783e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[-7.57685588e-01  6.52616107e-01 -2.18319985e-03  1.84658909e+01]
+                    [-6.52619383e-01 -7.57677322e-01  3.60789807e-03  1.39022322e+01]
+                    [ 7.00411377e-04  4.15845091e-03  9.99991108e-01  7.46629000e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    ...
+
+                    [[ 4.59690027e-01 -7.91180578e-01  4.03383654e-01  1.88403454e+01]
+                    [ 7.68906334e-01  5.81857984e-01  2.64998746e-01  1.37506428e+01]
+                    [-4.44373861e-01  1.88346966e-01  8.75818070e-01  8.24545860e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[ 4.67390153e-01 -7.86792896e-01  4.03117084e-01  1.88238049e+01]
+                    [ 7.62173204e-01  5.89661648e-01  2.67191219e-01  1.38511763e+01]
+                    [-4.47926837e-01  1.82362495e-01  8.75274511e-01  8.70781243e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                    [[ 4.76713472e-01 -7.81651606e-01  4.02200239e-01  1.88186035e+01]
+                    [ 7.54068706e-01  5.98773362e-01  2.69908962e-01  1.38804379e+01]
+                    [-4.51801562e-01  1.74617375e-01  8.74862344e-01  8.85555983e-01]
+                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
+                    intrinsics: [[[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    [[320.   0. 320.]
+                    [  0. 320. 240.]
+                    [  0.   0.   1.]]
+
+                    ...
+
+                    [[320.   0. 320.]
+                    """
+
                     """
                     depth_paths.shape: (3,)
                     poses.shape: (3, 4, 4)
@@ -751,9 +886,10 @@ class _PairDataset(torch.utils.data.Dataset):
                     [  0.   0.   1.]]]
                     """
                     print()
-                    print(f"depth_paths: {depth_paths}")
-                    print(f"poses: {poses}")                    
-                    print(f"intrinsics: {intrinsics}")
+                    # print(f"depth_paths: {depth_paths}")
+                    # print(f"poses: {poses}")                    
+                    # print(f"intrinsics: {intrinsics}")
+                    raise Exception("STOP!")
                     
                     # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
                     overlap_matrix = calculate_overlap_matrix(depth_paths, poses, intrinsics)
