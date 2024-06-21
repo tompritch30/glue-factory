@@ -13,6 +13,8 @@ import numpy as np
 import PIL.Image
 import torch
 
+import os 
+
 
 filtered_depth_paths = ['phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/6090224351_e47c7a7841_b.h5',
  'phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/2311566555_0c2995407f_o.h5',
@@ -83,8 +85,8 @@ def calculate_overlap_matrix(depth_paths, poses, intrinsics):
     for i, j, overlap in results:
         overlap_matrix[i, j] = overlap
         overlap_matrix[j, i] = overlap  # Make symmetric
-        if i % 500 == 0:
-            print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+        # if i % 500 == 0:
+        #     print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
 
     return overlap_matrix
 
@@ -133,6 +135,7 @@ def load_npy_file(partial_file_path):
     # /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/megadepth/depth_undistorted/0001
     # /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/megadepth/depth_undistorted/0001/dense0/depths/2750838037_06ac72a948_o.h5
 
+    print(partial_file_path)
 
     # Adjust file path as needed
     partial_path_elements = partial_file_path.split('/')
@@ -182,11 +185,16 @@ def load_npy_file(partial_file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
 def calculate_overlap_for_pair(args):
+    defaultVal = -1.0
     # print("calculating overlap for pairs!!!")
     i, j, depth_paths, poses, intrinsics = args
     # print(f"Calculating overlap for pair {i}-{j}")
     # print(f"Depth Path i: {depth_paths[i]}")
     # print(f"Depth Path j: {depth_paths[j]}")
+
+        # Handle None values directly within the function
+    if depth_paths[i] is None or depth_paths[j] is None:
+        return i, j, defaultVal
 
     depth_i = load_npy_file(depth_paths[i])
     pose_i = poses[i]
@@ -194,18 +202,110 @@ def calculate_overlap_for_pair(args):
     pose_j = poses[j]
     
     if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
-        return i, j, 0.0  # Return 0 overlap if data is missing
+        return i, j, defaultVal  # Return -1 overlap if data is missing
 
     pose = np.linalg.inv(pose_j) @ pose_i
     count, total = project_points(depth_i, intrinsics[i], pose)
     overlap = count / total
     # print("returning overlap values")
+    overlap = count / total if total > 0 else defaultVal
     return i, j, overlap
 
 
 
-overlap = calculate_overlap_matrix(np.array(filtered_depth_paths), np.array(filtered_poses), np.array(filtered_intrinsics))
-print(overlap)
+depth_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory0204_depth.npy"
+ground_overlap_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory0204_groundOverlap.npy"
+intrinsics_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory0204_intrinsics.npy"
+poses_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory0204_poses.npy"
+
+depth = np.load(depth_path, allow_pickle=True)
+ground_overlap = np.load(ground_overlap_path, allow_pickle=True)
+intrinsics = np.load(intrinsics_path, allow_pickle=True)
+poses = np.load(poses_path, allow_pickle=True)
+
+print(f"Depth Shape: {depth.shape}")
+print(f"Poses Shape: {poses.shape}")
+print(f"Intrinsics Shape: {intrinsics.shape}")
+print(f"Ground Overlap Shape: {ground_overlap.shape}")
+
+base_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting"
+var = "0204_depth"
+
+
+
+i = 5
+# for i in range(depth.shape[0]):
+#     if depth[i] is not None:
+#         print(f"{i} and depth {depth[i]}")
+
+
+def save_depth_data(base_dir, var, index, depth_path):
+    import os
+    # Ensure the base directory exists
+    os.makedirs(base_dir, exist_ok=True)
+    
+    # Load data from file
+    data = load_npy_file(depth_path)
+    if data is not None:
+        # Save the numpy array
+        save_path = f"{base_dir}/{var}_{index}.npy"
+        np.save(save_path, data, allow_pickle=True)
+        print(f"Data saved to {save_path}")
+    else:
+        print(f"Failed to load data from {depth_path}")
+
+"""
+i want to for loop from 0 to 300 and then i wil ceheck in this path: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting .. for a file in theformat of f"{var}_{i}" (these are defined ebfore and the i comes form the for loop. if no file exists then 
+"""
+directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting"
+
+# List to store the shapes
+shapes = []
+
+# Loop through all files in the directory
+for file in os.listdir(directory):
+    if file.endswith(".npy"):
+        # Load the .npy file
+        data = np.load(os.path.join(directory, file))
+        # Append the shape of the numpy array to the list
+        shapes.append(data.shape)
+        print(file, data.shape)
+
+# Convert list of shapes to a numpy array
+shapes_array = np.array(shapes)
+
+# Save the numpy array with shapes to a .npy file
+save_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/depthDims"
+np.save(save_path, shapes_array)
+# var = np.load("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_depth_15.npy", allow_pickle=True)
+# print(var)
+# print(var.shape)
+
+# np.save(f"{base_dir}/{var}_{i}", load_npy_file(depth[i]), allow_pickle=True)
+
+# for i in range(depth.shape[0]):
+#     if depth[i] is not None:
+#         save_depth_data(base_dir, var, i, depth[i])
+#     else:
+#         print(f"Depth at index {i} is None")
+
+print()
+
+# for i in range(depth.shape[0]):
+#     for j in range(depth.shape[0]):
+#         if ground_overlap[i][j] != -1:
+#             print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
+#         # if depth[i] is None and ground_overlap[i][j] != -1:
+        #     print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
+
+# print(depth, poses, intrinsics)
+# print(ground_overlap)
+# overlap = calculate_overlap_matrix(depth, poses, intrinsics)
+# print(overlap)
+
+
+# overlap = calculate_overlap_matrix(np.array(filtered_depth_paths), np.array(filtered_poses), np.array(filtered_intrinsics))
+# print(overlap)
 
 
 # def load_and_compare_matrices():

@@ -756,14 +756,21 @@ else:
             # return np.load(file_path, allow_pickle=True)
         else:
             print(f"File not found: {file_path}")
+            return None
             raise FileNotFoundError(f"File not found: {file_path}")
 
+   
     def calculate_overlap_for_pair(args):
+        defaultVal = -1.0
         # print("calculating overlap for pairs!!!")
         i, j, depth_paths, poses, intrinsics = args
         # print(f"Calculating overlap for pair {i}-{j}")
         # print(f"Depth Path i: {depth_paths[i]}")
         # print(f"Depth Path j: {depth_paths[j]}")
+
+            # Handle None values directly within the function
+        if depth_paths[i] is None or depth_paths[j] is None:
+            return i, j, defaultVal
 
         depth_i = load_npy_file(depth_paths[i])
         pose_i = poses[i]
@@ -771,12 +778,13 @@ else:
         pose_j = poses[j]
         
         if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
-            return i, j, 0.0  # Return 0 overlap if data is missing
+            return i, j, defaultVal  # Return -1 overlap if data is missing
 
         pose = np.linalg.inv(pose_j) @ pose_i
         count, total = project_points(depth_i, intrinsics[i], pose)
         overlap = count / total
         # print("returning overlap values")
+        overlap = count / total if total > 0 else defaultVal
         return i, j, overlap
 
     class _PairDataset(torch.utils.data.Dataset):
@@ -901,8 +909,8 @@ else:
                         for i, j, overlap in results:
                             overlap_matrix[i, j] = overlap
                             overlap_matrix[j, i] = overlap  # Make symmetric
-                            if i % 500 == 0:
-                                print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
+                            # if i % 500 == 0:
+                            #     print(f"Overlap between frame {i} and {j}: {overlap}")  # Print at intervals
 
                         return overlap_matrix
 
@@ -1008,33 +1016,33 @@ else:
                         maxVal = 50
                         if depth_count < maxVal: 
                             # Print the counts
-                            print("Number of non-None depth paths:", depth_count)
-                            print("Number of non-None poses:", pose_count)
-                            print("Number of None depth paths:", depth_none_count)
-                            print("Number of None poses:", pose_none_count)
-                            print(f"All data present, and less than {maxVal}!. Proceeding with overlap calculation.")                        
+                            # print("Number of non-None depth paths:", depth_count)
+                            # print("Number of non-None poses:", pose_count)
+                            # print("Number of None depth paths:", depth_none_count)
+                            # print("Number of None poses:", pose_none_count)
+                            # print(f"All data present, and less than {maxVal}!. Proceeding with overlap calculation.")                        
 
-                            # Create a boolean mask where None values are marked as False
-                            # Create masks for non-None entries
-                            mask_depth = np.array([dp is not None for dp in depth_paths])
-                            mask_poses = np.array([ps is not None for ps in poses])
-                            mask_intrinsics = np.array([intrinsic is not None for intrinsic in intrinsics])
+                            # # Create a boolean mask where None values are marked as False
+                            # # Create masks for non-None entries
+                            # mask_depth = np.array([dp is not None for dp in depth_paths])
+                            # mask_poses = np.array([ps is not None for ps in poses])
+                            # mask_intrinsics = np.array([intrinsic is not None for intrinsic in intrinsics])
 
-                            # Combine masks to keep only entries where all corresponding elements are not None
-                            mask = mask_depth & mask_poses & mask_intrinsics
+                            # # Combine masks to keep only entries where all corresponding elements are not None
+                            # mask = mask_depth & mask_poses & mask_intrinsics
 
-                            # Filter arrays using the combined mask
-                            filtered_depth_paths = depth_paths[mask]
-                            filtered_poses = poses[mask]
-                            filtered_intrinsics = intrinsics[mask]
+                            # # Filter arrays using the combined mask
+                            # filtered_depth_paths = depth_paths[mask]
+                            # filtered_poses = poses[mask]
+                            # filtered_intrinsics = intrinsics[mask]
 
 
-                            assert(len(filtered_depth_paths) == depth_count and len(filtered_poses) == pose_count)
+                            # assert(len(filtered_depth_paths) == depth_count and len(filtered_poses) == pose_count)
                             
-                            filtered_depth_paths, filtered_poses, filtered_intrinsics
-                            print(f"depth_paths.shape: {filtered_depth_paths.shape}")
-                            print(f"poses.shape: {filtered_poses.shape}")
-                            print(f"intrinsics.shape: {filtered_intrinsics.shape}")
+                            # filtered_depth_paths, filtered_poses, filtered_intrinsics
+                            # print(f"depth_paths.shape: {filtered_depth_paths.shape}")
+                            # print(f"poses.shape: {filtered_poses.shape}")
+                            # print(f"intrinsics.shape: {filtered_intrinsics.shape}")
                             """
                             depth_paths.shape: (42,)
                             poses.shape: (42,)
@@ -1433,36 +1441,43 @@ else:
                                     [0.00000e+00, 1.02557e+03, 3.87000e+02],
                                     [0.00000e+00, 0.00000e+00, 1.00000e+00]])]
                             """
-                            print()
-                            # print(f"depth_paths: {filtered_depth_paths}")
-                            # print(f"poses: {filtered_poses}")                    
-                            print(f"intrinsics: {filtered_intrinsics}")          
+                            # print()
+                            # # print(f"depth_paths: {filtered_depth_paths}")
+                            # # print(f"poses: {filtered_poses}")                    
+                            # print(f"intrinsics: {filtered_intrinsics}")          
 
-                            # Take the first three elements from each list
-                            aafiltered_depth_paths = filtered_depth_paths[:3]
-                            aafiltered_poses = filtered_poses[:3]
-                            aafiltered_intrinsics = filtered_intrinsics[:3]
+                            # # Take the first three elements from each list
+                            # aafiltered_depth_paths = filtered_depth_paths[:3]
+                            # aafiltered_poses = filtered_poses[:3]
+                            # aafiltered_intrinsics = filtered_intrinsics[:3]
 
-                            # Print the first three elements
-                            print("-----------------------")
-                            print(f"filtered_depth_paths: {aafiltered_depth_paths}")
-                            print(f"filtered_poses: {aafiltered_poses}")
-                            print(f"filtered_intrinsics: {aafiltered_intrinsics}")
-                            print(f"ground truth overlap matrix: {ground_truth_overlap_matrix[:3, :3]}")
-                            print("-----------------------")
+                            # # Print the first three elements
+                            # print("-----------------------")
+                            # print(f"filtered_depth_paths: {aafiltered_depth_paths}")
+                            # print(f"filtered_poses: {aafiltered_poses}")
+                            # print(f"filtered_intrinsics: {aafiltered_intrinsics}")
+                            # print(f"ground truth overlap matrix: {ground_truth_overlap_matrix[:3, :3]}")
+                            # print("-----------------------")
+                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_depth", info["depth_paths"], allow_pickle=True)
+                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_poses", info["poses"], allow_pickle=True)
+                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_intrinsics", info["intrinsics"], allow_pickle=True)
+                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_groundOverlap", info["overlap_matrix"], allow_pickle=True)
+                            
 
                             # Calculate the overlap matrix
-                            calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
+                            calculated_overlap_matrix = calculate_overlap_matrix(info["depth_paths"], info["poses"], info["intrinsics"])
+                            
+                            full_overlap_matrix = calculated_overlap_matrix
 
-                            full_overlap_matrix = np.full((len(depth_paths), len(depth_paths)), -1.0)
-                            # Populate the full matrix using the mask to place calculated overlaps correctly
-                            indices = np.where(mask)[0]  # Get indices where mask is True
-                            for i, idx_i in enumerate(indices):
-                                for j, idx_j in enumerate(indices):
-                                    if i <= j:  # Fill upper triangle and diagonal
-                                        full_overlap_matrix[idx_i, idx_j] = calculated_overlap_matrix[i, j]
-                                        if idx_i != idx_j:  # Fill lower triangle if not on the diagonal
-                                            full_overlap_matrix[idx_j, idx_i] = calculated_overlap_matrix[i, j]
+                            # full_overlap_matrix = np.full((len(depth_paths), len(depth_paths)), -1.0)
+                            # # Populate the full matrix using the mask to place calculated overlaps correctly
+                            # indices = np.where(mask)[0]  # Get indices where mask is True
+                            # for i, idx_i in enumerate(indices):
+                            #     for j, idx_j in enumerate(indices):
+                            #         if i <= j:  # Fill upper triangle and diagonal
+                            #             full_overlap_matrix[idx_i, idx_j] = calculated_overlap_matrix[i, j]
+                            #             if idx_i != idx_j:  # Fill lower triangle if not on the diagonal
+                            #                 full_overlap_matrix[idx_j, idx_i] = calculated_overlap_matrix[i, j]
 
 
                             # Compare the calculated matrix with the ground truth
