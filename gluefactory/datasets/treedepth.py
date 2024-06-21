@@ -43,6 +43,7 @@ python -m gluefactory.train sp+lg_treedepth     --conf gluefactory/configs/super
 python -m gluefactory.train sp+lg_treedepthPartial     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
 python -m gluefactory.train sp+lg_treedepthPartial     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
 python -m gluefactory.train sp+lg_treedepthdebug     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_homography
+python -m gluefactory.train sp+lg_treedepthNoFilter     --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml     train.load_experiment=sp+lg_densehomography
 """
 
 
@@ -740,256 +741,262 @@ class _PairDataset(torch.utils.data.Dataset):
                 ### ^Calculate Overlap matrix run time ###
                 # info["image_paths"], info["depth_paths"], info["poses"], info["intrinsics"]
                 # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]), sep="\n\n")
-                b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
-                def load_overlap_matrix(base_directory, scene):
-                    # Construct the filename for the overlap matrix
-                    filename = os.path.join(base_directory, scene + ".npz")
-                    try:
-                        data = np.load(filename)
-                        overlap_matrix = data['overlap_matrix']
-                        print(f"Loaded overlap matrix for {scene} from file.")
-                        return overlap_matrix, True  # Return matrix and success flag
-                    except FileNotFoundError:
-                        print(f"Skipping {scene}: Overlap matrix file not found.")
-                        return None, False 
-                    # # Load the overlap matrix from the file
-                    # data = np.load(filename)
-                    # overlap_matrix = data['overlap_matrix']
-                    # print(f"Loaded overlap matrix for {scene} from file.")
-                    # return overlap_matrix
-                # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
+                if usingOverlap == True:
+                        
+                    b_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/data/syntheticForestData/overlappingMatrices"
+                    def load_overlap_matrix(base_directory, scene):
+                        # Construct the filename for the overlap matrix
+                        filename = os.path.join(base_directory, scene + ".npz")
+                        try:
+                            data = np.load(filename)
+                            overlap_matrix = data['overlap_matrix']
+                            print(f"Loaded overlap matrix for {scene} from file.")
+                            return overlap_matrix, True  # Return matrix and success flag
+                        except FileNotFoundError:
+                            print(f"Skipping {scene}: Overlap matrix file not found.")
+                            return None, False 
+                        # # Load the overlap matrix from the file
+                        # data = np.load(filename)
+                        # overlap_matrix = data['overlap_matrix']
+                        # print(f"Loaded overlap matrix for {scene} from file.")
+                        # return overlap_matrix
+                    # NEED TO RECALC THE OVERLAP MATRIX FOR THIS ONE: [1 2 3] 
 
-                ##'######## overlapoooo
-                # if False or artial_mode == False:
-                #     overlap_matrix, success = load_overlap_matrix(b_dir, scene)
-                
-                ############ overlapoooo
-                success = False
-                if partial_mode:
-                    success = False  # Force recalculation of overlap matrix
-
-                """
-                
-                """
-
-                if not success:
-                    print("did not load overlap matrix for scene:", scene)                    
+                    ##'######## overlapoooo
+                    # if False or artial_mode == False:
+                    #     overlap_matrix, success = load_overlap_matrix(b_dir, scene)
                     
-                    depth_paths = np.array(info["depth_paths"])
-
-                    # Create a list of numpy arrays for poses and intrinsics
-                    poses = [np.array(pose, dtype=object) for pose in info["poses"]]
-                    intrinsics = [np.array(intrin, dtype=object) for intrin in info["intrinsics"]]
-
-                    # Convert list of numpy arrays to numpy array of objects
-                    poses = np.array(poses)
-                    intrinsics = np.array(intrinsics)
-
-                    # poses = np.array([np.array([pose]) for pose in poses])
-                    # intrinsics = np.array(info["intrinsics"])
-                    # # Adjust to be in foramt [ array([[#2D array 4x4 matrix]]) 
-                    # # TEMPORARY FIX FOR HVAING THE INSTRICS TWICE
-                    # intrinsics = np.array(np.array([intrinsics[i]]) for i in range(depth_paths.shape[0]))
-                    print(f"Type of depth_paths: {type(depth_paths)}")
-                    print(f"Length of depth_paths: {len(depth_paths)}")
-                    print(f"Shape of depth_paths: {depth_paths.shape}")                
-
-                    print(f"Type of poses: {type(poses)}")
-                    print(f"Length of poses: {len(poses)}")
-                    print(f"Shape of poses: {poses.shape}")
-
-                    print(f"Type of intrinsics: {type(intrinsics)}")
-                    print(f"Length of intrinsics: {len(intrinsics)}")
-                    print(f"Shape of intrinsics: {intrinsics.shape}")
+                    ############ overlapoooo
+                    success = False
+                    if partial_mode:
+                        success = False  # Force recalculation of overlap matrix
 
                     """
-                    did not load overlap matrix for scene: SFW_E_L_P000
-                    depth_paths.shape: (2329,)
-                    poses.shape: (2329, 4, 4)
-                    intrinsics.shape: (4658, 3, 3)
-
-                    depth_paths: ['depthData/SFW_E_L_P000/000000_left_depth.npy'
-                    'depthData/SFW_E_L_P000/000001_left_depth.npy'
-                    'depthData/SFW_E_L_P000/000002_left_depth.npy' ...
-                    'depthData/SFW_E_L_P000/002326_left_depth.npy'
-                    'depthData/SFW_E_L_P000/002327_left_depth.npy'
-                    'depthData/SFW_E_L_P000/002328_left_depth.npy']
-                    poses: [[[-7.53328596e-01  6.57644301e-01  0.00000000e+00  1.86386890e+01]
-                    [-6.57644301e-01 -7.53328596e-01  0.00000000e+00  1.40494499e+01]
-                    [ 0.00000000e+00  0.00000000e+00  1.00000000e+00  9.07383382e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[-7.55561874e-01  6.55076187e-01 -1.20110294e-03  1.85503712e+01]
-                    [-6.55077233e-01 -7.55559786e-01  1.79676355e-03  1.39741745e+01]
-                    [ 2.69511938e-04  2.14438122e-03  9.99997664e-01  8.24409783e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[-7.57685588e-01  6.52616107e-01 -2.18319985e-03  1.84658909e+01]
-                    [-6.52619383e-01 -7.57677322e-01  3.60789807e-03  1.39022322e+01]
-                    [ 7.00411377e-04  4.15845091e-03  9.99991108e-01  7.46629000e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    ...
-
-                    [[ 4.59690027e-01 -7.91180578e-01  4.03383654e-01  1.88403454e+01]
-                    [ 7.68906334e-01  5.81857984e-01  2.64998746e-01  1.37506428e+01]
-                    [-4.44373861e-01  1.88346966e-01  8.75818070e-01  8.24545860e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[ 4.67390153e-01 -7.86792896e-01  4.03117084e-01  1.88238049e+01]
-                    [ 7.62173204e-01  5.89661648e-01  2.67191219e-01  1.38511763e+01]
-                    [-4.47926837e-01  1.82362495e-01  8.75274511e-01  8.70781243e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[ 4.76713472e-01 -7.81651606e-01  4.02200239e-01  1.88186035e+01]
-                    [ 7.54068706e-01  5.98773362e-01  2.69908962e-01  1.38804379e+01]
-                    [-4.51801562e-01  1.74617375e-01  8.74862344e-01  8.85555983e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
-                    intrinsics: [[[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    ...
-
-                    [[320.   0. 320.]
-                    """
-
-                    """
-                    depth_paths.shape: (3,)
-                    poses.shape: (3, 4, 4)
-                    intrinsics.shape: (6, 3, 3)
-
-                    depth_paths: ['depthData/SF_E_L_APartial/000000_left_depth.npy'
-                    'depthData/SF_E_L_APartial/000001_left_depth.npy'
-                    'depthData/SF_E_L_APartial/000002_left_depth.npy']
-                    poses: [[[-7.17845000e-01  6.96202956e-01  0.00000000e+00  5.53746414e+01]
-                    [-6.96202956e-01 -7.17845000e-01  0.00000000e+00 -2.64403152e+01]
-                    [ 0.00000000e+00  0.00000000e+00  1.00000000e+00 -9.90465045e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[-7.09192097e-01  7.04933809e-01  1.07188313e-02  5.54618149e+01]
-                    [-7.05003892e-01 -7.09012179e-01 -1.64694201e-02 -2.63598995e+01]
-                    [-4.01006915e-03 -1.92368004e-02  9.99806914e-01 -9.21572864e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
-
-                    [[-6.99696462e-01  7.14067656e-01  2.30704096e-02  5.54505005e+01]
-                    [-7.14388747e-01 -6.98893452e-01 -3.45927944e-02 -2.62395477e+01]
-                    [-8.57783747e-03 -4.06856969e-02  9.99135173e-01 -8.79076540e-01]
-                    [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
-                    intrinsics: [[[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]
-
-                    [[320.   0. 320.]
-                    [  0. 320. 240.]
-                    [  0.   0.   1.]]]
-                    """
-                    print()
-                    # print(f"depth_paths: {depth_paths}")
-                    # print(f"poses: {poses}")                    
-                    # print(f"intrinsics: {intrinsics}")
-                    raise Exception("STOP!")
                     
-                    # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
-                    overlap_matrix = calculate_overlap_matrix(depth_paths, poses, intrinsics)
-                    # # overlap_matrix = np.array([1, 2, 3])
-                    save_overlap_matrix(base_directory, scene, overlap_matrix)
-                ### ^Calculate Overlap matrix run time ###
+                    """
 
-                #### Load overlap matrix #####
-                print("\n\n\n\n IN TESTING ZONE ")
-                test_full_overlap()
-                test_no_overlap()
-                test_partial_overlap()
-                test_overlap_matrix()
-                print("\n\n\n\n END TESTING ZONE ")
-                                
-                # if scene == "SFW_E_L_P000":
-                #     print("skipping SFW_E_L_P000")
-                #     continue 
-                # # print("loading overlap matrix for:scene:", scene)
-                # overlap_matrix, success = load_overlap_matrix(b_dir, scene)
-                # if not success:
-                #     print("did not load overlap matrix for scene:", scene)
-                #     continue 
-                #### ^^Load overlap matrix #####
+                    if not success:
+                        print("did not load overlap matrix for scene:", scene)                    
+                        
+                        depth_paths = np.array(info["depth_paths"])
 
-                info["overlap_matrix"] = overlap_matrix
-                # print("overlap_matrix shape:", info["overlap_matrix"].shape)
+                        # Create a list of numpy arrays for poses and intrinsics
+                        poses = [np.array(pose, dtype=object) for pose in info["poses"]]
+                        intrinsics = [np.array(intrin, dtype=object) for intrin in info["intrinsics"]]
 
-                # print("overlap_matrix:", overlap_matrix, "\n\n")
-                mat = info["overlap_matrix"][valid][:, valid]
-                # print("Mat:", mat, "\n\n")
-                # print("Mat shape:", mat.shape, "\n\n")
+                        # Convert list of numpy arrays to numpy array of objects
+                        poses = np.array(poses)
+                        intrinsics = np.array(intrinsics)
 
-                if partial_mode:
-                    if num_pos is not None:
-                        num_images = len(self.depths[scene])
-                        print(num_images)
-                        pairs = np.stack(np.triu_indices(num_images, 1), -1)  # Create all unique pairs (0,1), (0,2), (1,2)
+                        # poses = np.array([np.array([pose]) for pose in poses])
+                        # intrinsics = np.array(info["intrinsics"])
+                        # # Adjust to be in foramt [ array([[#2D array 4x4 matrix]]) 
+                        # # TEMPORARY FIX FOR HVAING THE INSTRICS TWICE
+                        # intrinsics = np.array(np.array([intrinsics[i]]) for i in range(depth_paths.shape[0]))
+                        print(f"Type of depth_paths: {type(depth_paths)}")
+                        print(f"Length of depth_paths: {len(depth_paths)}")
+                        print(f"Shape of depth_paths: {depth_paths.shape}")                
+
+                        print(f"Type of poses: {type(poses)}")
+                        print(f"Length of poses: {len(poses)}")
+                        print(f"Shape of poses: {poses.shape}")
+
+                        print(f"Type of intrinsics: {type(intrinsics)}")
+                        print(f"Length of intrinsics: {len(intrinsics)}")
+                        print(f"Shape of intrinsics: {intrinsics.shape}")
+
+                        """
+                        did not load overlap matrix for scene: SFW_E_L_P000
+                        depth_paths.shape: (2329,)
+                        poses.shape: (2329, 4, 4)
+                        intrinsics.shape: (4658, 3, 3)
+
+                        depth_paths: ['depthData/SFW_E_L_P000/000000_left_depth.npy'
+                        'depthData/SFW_E_L_P000/000001_left_depth.npy'
+                        'depthData/SFW_E_L_P000/000002_left_depth.npy' ...
+                        'depthData/SFW_E_L_P000/002326_left_depth.npy'
+                        'depthData/SFW_E_L_P000/002327_left_depth.npy'
+                        'depthData/SFW_E_L_P000/002328_left_depth.npy']
+                        poses: [[[-7.53328596e-01  6.57644301e-01  0.00000000e+00  1.86386890e+01]
+                        [-6.57644301e-01 -7.53328596e-01  0.00000000e+00  1.40494499e+01]
+                        [ 0.00000000e+00  0.00000000e+00  1.00000000e+00  9.07383382e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[-7.55561874e-01  6.55076187e-01 -1.20110294e-03  1.85503712e+01]
+                        [-6.55077233e-01 -7.55559786e-01  1.79676355e-03  1.39741745e+01]
+                        [ 2.69511938e-04  2.14438122e-03  9.99997664e-01  8.24409783e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[-7.57685588e-01  6.52616107e-01 -2.18319985e-03  1.84658909e+01]
+                        [-6.52619383e-01 -7.57677322e-01  3.60789807e-03  1.39022322e+01]
+                        [ 7.00411377e-04  4.15845091e-03  9.99991108e-01  7.46629000e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        ...
+
+                        [[ 4.59690027e-01 -7.91180578e-01  4.03383654e-01  1.88403454e+01]
+                        [ 7.68906334e-01  5.81857984e-01  2.64998746e-01  1.37506428e+01]
+                        [-4.44373861e-01  1.88346966e-01  8.75818070e-01  8.24545860e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[ 4.67390153e-01 -7.86792896e-01  4.03117084e-01  1.88238049e+01]
+                        [ 7.62173204e-01  5.89661648e-01  2.67191219e-01  1.38511763e+01]
+                        [-4.47926837e-01  1.82362495e-01  8.75274511e-01  8.70781243e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[ 4.76713472e-01 -7.81651606e-01  4.02200239e-01  1.88186035e+01]
+                        [ 7.54068706e-01  5.98773362e-01  2.69908962e-01  1.38804379e+01]
+                        [-4.51801562e-01  1.74617375e-01  8.74862344e-01  8.85555983e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
+                        intrinsics: [[[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        ...
+
+                        [[320.   0. 320.]
+                        """
+
+                        """
+                        depth_paths.shape: (3,)
+                        poses.shape: (3, 4, 4)
+                        intrinsics.shape: (6, 3, 3)
+
+                        depth_paths: ['depthData/SF_E_L_APartial/000000_left_depth.npy'
+                        'depthData/SF_E_L_APartial/000001_left_depth.npy'
+                        'depthData/SF_E_L_APartial/000002_left_depth.npy']
+                        poses: [[[-7.17845000e-01  6.96202956e-01  0.00000000e+00  5.53746414e+01]
+                        [-6.96202956e-01 -7.17845000e-01  0.00000000e+00 -2.64403152e+01]
+                        [ 0.00000000e+00  0.00000000e+00  1.00000000e+00 -9.90465045e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[-7.09192097e-01  7.04933809e-01  1.07188313e-02  5.54618149e+01]
+                        [-7.05003892e-01 -7.09012179e-01 -1.64694201e-02 -2.63598995e+01]
+                        [-4.01006915e-03 -1.92368004e-02  9.99806914e-01 -9.21572864e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]
+
+                        [[-6.99696462e-01  7.14067656e-01  2.30704096e-02  5.54505005e+01]
+                        [-7.14388747e-01 -6.98893452e-01 -3.45927944e-02 -2.62395477e+01]
+                        [-8.57783747e-03 -4.06856969e-02  9.99135173e-01 -8.79076540e-01]
+                        [ 0.00000000e+00  0.00000000e+00  0.00000000e+00  1.00000000e+00]]]
+                        intrinsics: [[[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]
+
+                        [[320.   0. 320.]
+                        [  0. 320. 240.]
+                        [  0.   0.   1.]]]
+                        """
+                        print()
+                        # print(f"depth_paths: {depth_paths}")
+                        # print(f"poses: {poses}")                    
+                        # print(f"intrinsics: {intrinsics}")
+                        raise Exception("STOP!")
+                        
+                        # print(np.array(info["depth_paths"]), np.array(info["poses"]), np.array(info["intrinsics"]))
+                        overlap_matrix = calculate_overlap_matrix(depth_paths, poses, intrinsics)
+                        # # overlap_matrix = np.array([1, 2, 3])
+                        save_overlap_matrix(base_directory, scene, overlap_matrix)
+                    ### ^Calculate Overlap matrix run time ###
+
+                    #### Load overlap matrix #####
+                    print("\n\n\n\n IN TESTING ZONE ")
+                    test_full_overlap()
+                    test_no_overlap()
+                    test_partial_overlap()
+                    test_overlap_matrix()
+                    print("\n\n\n\n END TESTING ZONE ")
+                                    
+                    # if scene == "SFW_E_L_P000":
+                    #     print("skipping SFW_E_L_P000")
+                    #     continue 
+                    # # print("loading overlap matrix for:scene:", scene)
+                    # overlap_matrix, success = load_overlap_matrix(b_dir, scene)
+                    # if not success:
+                    #     print("did not load overlap matrix for scene:", scene)
+                    #     continue 
+                    #### ^^Load overlap matrix #####
+
+                    info["overlap_matrix"] = overlap_matrix
+                    # print("overlap_matrix shape:", info["overlap_matrix"].shape)
+
+                    # print("overlap_matrix:", overlap_matrix, "\n\n")
+                    mat = info["overlap_matrix"][valid][:, valid]
+                    # print("Mat:", mat, "\n\n")
+                    # print("Mat shape:", mat.shape, "\n\n")
+
+                    if partial_mode:
+                        if num_pos is not None:
+                            num_images = len(self.depths[scene])
+                            print(num_images)
+                            pairs = np.stack(np.triu_indices(num_images, 1), -1)  # Create all unique pairs (0,1), (0,2), (1,2)
+                            if pairs.size == 0:
+                                print("Insufficient data to form any pairs.")
+                        else:
+                            print("No positioning number specified, skipping pair formation.")
+                        pass
+                    elif num_pos is not None:
+                        # # limited_logger.log("num_pos", num_pos)
+                        # Sample a subset of pairs, binned by overlap.
+                        num_bins = self.conf.num_overlap_bins
+                        assert num_bins > 0
+                        bin_width = (
+                            self.conf.max_overlap - self.conf.min_overlap
+                        ) / num_bins
+                        num_per_bin = num_pos // num_bins
+                        pairs_all = []
+                        for k in range(num_bins):
+                            bin_min = self.conf.min_overlap + k * bin_width
+                            bin_max = bin_min + bin_width
+                            pairs_bin = (mat > bin_min) & (mat <= bin_max)
+                            pairs_bin = np.stack(np.where(pairs_bin), -1)
+                            pairs_all.append(pairs_bin)
+                        # Skip bins with too few samples
+                        has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+                        num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+                        pairs = []
+                        for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+                            if keep:
+                                pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+                        if pairs:
+                            pairs = np.concatenate(pairs, 0)
+                        else:
+                            print("No valid pairs formed; check overlap criteria or add more data.")
+                    else:                    
+                        pairs = (mat > self.conf.min_overlap) & (
+                            mat <= self.conf.max_overlap
+                        )
+                        pairs = np.stack(np.where(pairs), -1)
                         if pairs.size == 0:
-                            print("Insufficient data to form any pairs.")
-                    else:
-                        print("No positioning number specified, skipping pair formation.")
-                    pass
-                elif num_pos is not None:
-                    # # limited_logger.log("num_pos", num_pos)
-                    # Sample a subset of pairs, binned by overlap.
-                    num_bins = self.conf.num_overlap_bins
-                    assert num_bins > 0
-                    bin_width = (
-                        self.conf.max_overlap - self.conf.min_overlap
-                    ) / num_bins
-                    num_per_bin = num_pos // num_bins
-                    pairs_all = []
-                    for k in range(num_bins):
-                        bin_min = self.conf.min_overlap + k * bin_width
-                        bin_max = bin_min + bin_width
-                        pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                        pairs_bin = np.stack(np.where(pairs_bin), -1)
-                        pairs_all.append(pairs_bin)
-                    # Skip bins with too few samples
-                    has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                    num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                    pairs = []
-                    for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                        if keep:
-                            pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                    if pairs:
-                        pairs = np.concatenate(pairs, 0)
-                    else:
-                        print("No valid pairs formed; check overlap criteria or add more data.")
-                else:                    
-                    pairs = (mat > self.conf.min_overlap) & (
-                        mat <= self.conf.max_overlap
-                    )
-                    pairs = np.stack(np.where(pairs), -1)
-                    if pairs.size == 0:
-                        print("No valid pairs formed; check overlap criteria or add more data.")
+                            print("No valid pairs formed; check overlap criteria or add more data.")
+                else:
+                    print("not using the overlap matrices")
+                    ## SKIP USING OVERLAP MATRIX AND JUST PASS IN ALL THE PAIRS!!!
+                    pairs = np.stack(np.where(np.triu(mat, 1)), -1)
 
                 # print(f"\n\ninput to treepdepth pairs is {pairs}")
                 # 0-1 317-318

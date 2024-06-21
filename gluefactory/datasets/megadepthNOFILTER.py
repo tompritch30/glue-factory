@@ -1,10 +1,7 @@
 originalCode = True
 
 """
-        python -m gluefactory.train sp+lg_megadepthtest     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
-    python -m gluefactory.train sp+lg_megadepth     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
-    python -m gluefactory.train sp+lg_debug     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
-    python -m gluefactory.train sp+lg_debug     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
+        python -m gluefactory.train sp+lg_megadepthtestNOFILTER     --conf gluefactory/configs/superpoint+lightglue_megadepthNOFILTER.yaml     train.load_experiment=sp+lg_homography
 """
 
 if originalCode:
@@ -43,7 +40,7 @@ if originalCode:
             return data
 
 
-    class MegaDepth(BaseDataset):
+    class MegaDepthNOFILTERDataset(BaseDataset):
         default_conf = {
             # paths
             "data_dir": "megadepth/",
@@ -218,34 +215,35 @@ if originalCode:
                     ind = np.where(valid)[0]
                     mat = info["overlap_matrix"][valid][:, valid]
 
-                    if num_pos is not None:
-                        # Sample a subset of pairs, binned by overlap.
-                        num_bins = self.conf.num_overlap_bins
-                        assert num_bins > 0
-                        bin_width = (
-                            self.conf.max_overlap - self.conf.min_overlap
-                        ) / num_bins
-                        num_per_bin = num_pos // num_bins
-                        pairs_all = []
-                        for k in range(num_bins):
-                            bin_min = self.conf.min_overlap + k * bin_width
-                            bin_max = bin_min + bin_width
-                            pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                            pairs_bin = np.stack(np.where(pairs_bin), -1)
-                            pairs_all.append(pairs_bin)
-                        # Skip bins with too few samples
-                        has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                        num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                        pairs = []
-                        for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                            if keep:
-                                pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                        pairs = np.concatenate(pairs, 0)
-                    else:
-                        pairs = (mat > self.conf.min_overlap) & (
-                            mat <= self.conf.max_overlap
-                        )
-                        pairs = np.stack(np.where(pairs), -1)
+                    # if num_pos is not None:
+                    #     # Sample a subset of pairs, binned by overlap.
+                    #     num_bins = self.conf.num_overlap_bins
+                    #     assert num_bins > 0
+                    #     bin_width = (
+                    #         self.conf.max_overlap - self.conf.min_overlap
+                    #     ) / num_bins
+                    #     num_per_bin = num_pos // num_bins
+                    #     pairs_all = []
+                    #     for k in range(num_bins):
+                    #         bin_min = self.conf.min_overlap + k * bin_width
+                    #         bin_max = bin_min + bin_width
+                    #         pairs_bin = (mat > bin_min) & (mat <= bin_max)
+                    #         pairs_bin = np.stack(np.where(pairs_bin), -1)
+                    #         pairs_all.append(pairs_bin)
+                    #     # Skip bins with too few samples
+                    #     has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+                    #     num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+                    #     pairs = []
+                    #     for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+                    #         if keep:
+                    #             pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+                    #     pairs = np.concatenate(pairs, 0)
+                    # else:
+                    #     pairs = (mat > self.conf.min_overlap) & (
+                    #         mat <= self.conf.max_overlap
+                    #     )
+                    #     pairs = np.stack(np.where(pairs), -1)
+                    pairs = np.stack(np.where(np.triu(mat, 1)), -1)
 
                     pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
                     if num_neg is not None:
@@ -586,7 +584,7 @@ else:
 
     # limited_logger = LimitedLogger()
 
-    class MegaDepth(BaseDataset):
+    class MegaDepthNOFILTER(BaseDataset):
         default_conf = {
             # paths
             "data_dir": "megadepth/",
