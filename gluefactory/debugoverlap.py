@@ -23,30 +23,29 @@ import os
 import h5py
 
 
-filtered_depth_paths = ['phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/6090224351_e47c7a7841_b.h5',
- 'phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/2311566555_0c2995407f_o.h5',
- 'phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/4500482425_e7f608c5de_o.h5']
+# filtered_depth_paths = ['phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/6090224351_e47c7a7841_b.h5',
+#  'phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/2311566555_0c2995407f_o.h5',
+#  'phoenix/S6/zl548/MegaDepth_v1/0204/dense0/depths/4500482425_e7f608c5de_o.h5']
 
 
-filtered_poses = [np.array([[-0.99981896,  0.00518729,  0.01830706,  0.0913207 ],
-                         [-0.00689591,  0.79793348, -0.60270607, -0.857202  ],
-                         [-0.01773423, -0.6027232 , -0.79775324,  0.996966  ],
-                         [ 0.        ,  0.        ,  0.        ,  1.        ]]), 
-                 np.array([[ 0.99881031, -0.0174577 ,  0.04553234, -0.350281  ],
-                        [-0.01570648,  0.76879143,  0.63930669, -0.0445705 ],
-                        [-0.04616569, -0.63926127,  0.76760261, -0.659616  ],
-                        [ 0.        ,  0.        ,  0.        ,  1.        ]]), 
-                np.array([[ 9.99895122e-01,  3.73813649e-04, -1.44777531e-02, -8.72253000e-02],
-                       [ 2.89577373e-03,  9.74319525e-01,  2.25151232e-01,1.51859000e+00],
-                       [ 1.41901222e-02, -2.25169543e-01,  9.74216258e-01,6.27333000e+00], 
-                        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,1.00000000e+00]])]
+# filtered_poses = [np.array([[-0.99981896,  0.00518729,  0.01830706,  0.0913207 ],
+#                          [-0.00689591,  0.79793348, -0.60270607, -0.857202  ],
+#                          [-0.01773423, -0.6027232 , -0.79775324,  0.996966  ],
+#                          [ 0.        ,  0.        ,  0.        ,  1.        ]]), 
+#                  np.array([[ 0.99881031, -0.0174577 ,  0.04553234, -0.350281  ],
+#                         [-0.01570648,  0.76879143,  0.63930669, -0.0445705 ],
+#                         [-0.04616569, -0.63926127,  0.76760261, -0.659616  ],
+#                         [ 0.        ,  0.        ,  0.        ,  1.        ]]), 
+#                 np.array([[ 9.99895122e-01,  3.73813649e-04, -1.44777531e-02, -8.72253000e-02],
+#                        [ 2.89577373e-03,  9.74319525e-01,  2.25151232e-01,1.51859000e+00],
+#                        [ 1.41901222e-02, -2.25169543e-01,  9.74216258e-01,6.27333000e+00], 
+#                         [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,1.00000000e+00]])]
 
-filtered_intrinsics = [np.array([[3.38324e+03, 0.00000e+00, 3.39500e+02],[0.00000e+00, 3.38324e+03, 5.10000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]]),
-                       np.array([[1.72107e+03, 0.00000e+00, 5.91500e+02], [0.00000e+00, 1.72072e+03, 8.00000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]]), 
-                       np.array([[1.29853e+03, 0.00000e+00, 5.38500e+02], [0.00000e+00, 1.29876e+03, 8.00000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]])]
+# filtered_intrinsics = [np.array([[3.38324e+03, 0.00000e+00, 3.39500e+02],[0.00000e+00, 3.38324e+03, 5.10000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]]),
+#                        np.array([[1.72107e+03, 0.00000e+00, 5.91500e+02], [0.00000e+00, 1.72072e+03, 8.00000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]]), 
+#                        np.array([[1.29853e+03, 0.00000e+00, 5.38500e+02], [0.00000e+00, 1.29876e+03, 8.00000e+02], [0.00000e+00, 0.00000e+00, 1.00000e+00]])]
 
-truth_matrix =  [[-1. -1. -1.],  [-1. -1. -1.], [-1. -1. -1.]]
-
+# truth_matrix =  [[-1. -1. -1.],  [-1. -1. -1.], [-1. -1. -1.]]
 
 
 """
@@ -63,7 +62,6 @@ The plan:
 9) for tree depth check the difference between pose left and right and see if the file repeats itself on the original download. 
 =10) snip the overlap matrix to 3x3 and compare to the ground truth overlap matrix
 """
-
 
 def calculate_overlap_matrix(depth_paths, poses, intrinsics):
     """Calculates the overlap matrix between frames in parallel.    
@@ -98,23 +96,74 @@ def calculate_overlap_matrix(depth_paths, poses, intrinsics):
 
     return overlap_matrix
 
+# def project_points(depth, intrinsics, pose):
+#     h, w = depth.shape
+#     x, y = np.meshgrid(np.arange(w), np.arange(h))
+#     z = depth.flatten()
+
+#     x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
+#     y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
+#     points = np.vstack((x, y, z, np.ones_like(z)))
+
+#     transformed_points = pose @ points
+#     transformed_points /= transformed_points[2, :]
+
+#     x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
+#     y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+
+#     valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+#     return np.count_nonzero(valid), valid.size
+
 def project_points(depth, intrinsics, pose):
+    """Project points from 3D space to 2D image plane using camera intrinsics and pose."""
+    # h, w = depth.shape
+    # y, x = np.indices((h, w))
+    # z = depth
+    # x = (x - intrinsics[0, 2]) * z / intrinsics[0, 0]
+    # y = (y - intrinsics[1, 2]) * z / intrinsics[1, 1]
+
+    # points = np.vstack((x, y, z)).T
+    # points_homogeneous = np.hstack([points, np.ones((points.shape[0], 1))])  # make points homogeneous
+    # transformed_points = pose @ points_homogeneous.T  # apply transformation
+
+    # x_proj = transformed_points[0, :] * intrinsics[0, 0] / transformed_points[2, :] + intrinsics[0, 2]
+    # y_proj = transformed_points[1, :] * intrinsics[1, 1] / transformed_points[2, :] + intrinsics[1, 2]
+
+    # valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+    # return np.count_nonzero(valid), len(points)
+    # Transform points to the camera frame
+    
+    # points = np.stack((x, y, z), axis=-1).reshape(-1, 3)
+    # points_homogeneous = np.hstack([points, np.ones((points.shape[0], 1))])
+    # points_transformed = pose @ points_homogeneous.T
+
+    # # Project points onto the image plane
+    # x_proj = points_transformed[0, :] * intrinsics[0, 0] / points_transformed[2, :] + intrinsics[0, 2]
+    # y_proj = points_transformed[1, :] * intrinsics[1, 1] / points_transformed[2, :] + intrinsics[1, 2]
+    # valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
+
+    # return np.count_nonzero(valid), valid.size 
+
+    """Project points from 3D space to 2D image plane using camera intrinsics and pose."""
     h, w = depth.shape
-    x, y = np.meshgrid(np.arange(w), np.arange(h))
+    y, x = np.indices((h, w))
     z = depth.flatten()
 
     x = (x.flatten() - intrinsics[0, 2]) * z / intrinsics[0, 0]
     y = (y.flatten() - intrinsics[1, 2]) * z / intrinsics[1, 1]
-    points = np.vstack((x, y, z, np.ones_like(z)))
 
-    transformed_points = pose @ points
-    transformed_points /= transformed_points[2, :]
+    points = np.vstack((x, y, z)).T
+    points_homogeneous = np.hstack([points, np.ones((points.shape[0], 1))])  # make points homogeneous
+    transformed_points = pose @ points_homogeneous.T  # apply transformation
 
-    x_proj = intrinsics[0, 0] * transformed_points[0, :] / transformed_points[2, :] + intrinsics[0, 2]
-    y_proj = intrinsics[1, 1] * transformed_points[1, :] / transformed_points[2, :] + intrinsics[1, 2]
+    x_proj = transformed_points[0, :] * intrinsics[0, 0] / transformed_points[2, :] + intrinsics[0, 2]
+    y_proj = transformed_points[1, :] * intrinsics[1, 1] / transformed_points[2, :] + intrinsics[1, 2]
 
     valid = (x_proj >= 0) & (x_proj < w) & (y_proj >= 0) & (y_proj < h)
-    return np.count_nonzero(valid), valid.size
+    return np.count_nonzero(valid), len(points)
+
+
+    
 
 # def load_npy_file(partial_file_path):
 #     import os
@@ -192,6 +241,25 @@ def load_npy_file(partial_file_path):
         print(f"File not found: {file_path}")
         raise FileNotFoundError(f"File not found: {file_path}")
 
+def verify_pose_format(pose):
+    """Check if the pose matrix is in the correct format."""
+    if pose.shape != (4, 4):
+        print("Pose matrix format error: Expected 4x4, got", pose.shape)
+        return False
+    if not np.isclose(pose[3, :], [0, 0, 0, 1]).all():
+        print("Pose matrix bottom row error: Expected [0, 0, 0, 1], got", pose[3, :])
+        return False
+    return True
+
+def calculate_relative_transformation(pose_i, pose_j):
+    """Calculate the relative transformation matrix between two poses."""
+    # Check pose format correctness
+    if not (verify_pose_format(pose_i) and verify_pose_format(pose_j)):
+        return None
+    # Compute the relative transformation from frame j to frame i
+    relative_transform = np.linalg.inv(pose_j) @ pose_i
+    return relative_transform
+
 
 def calculate_overlap_for_pair(args):
     defaultVal = -1.0
@@ -213,13 +281,26 @@ def calculate_overlap_for_pair(args):
     
     if depth_i is None or depth_j is None or pose_i is None or pose_j is None:
         return i, j, defaultVal  # Return -1 overlap if data is missing
+    
+    """
+    Potential Issue: If the poses are defined differently (e.g., camera-to-world instead of world-to-camera), you would need to adjust this calculation.
+    """
+    if not verify_pose_format(pose_i) or not verify_pose_format(pose_j):
+        print(f"Invalid pose format for frames {i} or {j}")
+        return i, j, defaultVal
+    
+    relative_pose = calculate_relative_transformation(pose_i, pose_j)
+    count, total = project_points(depth_i, intrinsics[i], relative_pose)
 
-    pose = np.linalg.inv(pose_j) @ pose_i
-    count, total = project_points(depth_i, intrinsics[i], pose)
-    overlap = count / total
-    # print("returning overlap values")
     overlap = count / total if total > 0 else defaultVal
     return i, j, overlap
+    
+    # pose = np.linalg.inv(pose_j) @ pose_i
+    # count, total = project_points(depth_i, intrinsics[i], pose)
+    # overlap = count / total
+    # # print("returning overlap values")
+    # overlap = count / total if total > 0 else defaultVal
+    # return i, j, overlap
 
 
 
@@ -241,7 +322,7 @@ print(f"Ground Overlap Shape: {ground_overlap.shape}")
 base_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting"
 var = "0204_depth"
 
-
+# "['image_paths', 'depth_paths', 'intrinsics', 'poses', 'overlap_matrix', 'scale_ratio_matrix', 'angles', 'n_points3D', 'points3D_id_to_2D', 'points3D_id_to_ndepth']"
 
 # i = 5
 # for i in range(depth.shape[0]):
@@ -313,16 +394,19 @@ i want to for loop from 0 to 300 and then i wil ceheck in this path: /homes/tp46
 #### Calculate overlap matrix
 # print(depth, poses, intrinsics)
 # print(ground_overlap)
+expNum = "changedOverlapPose"
+path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlap"
+full_path = path + expNum
 # overlap = calculate_overlap_matrix(depth, poses, intrinsics)
 # print(overlap)
 # print(ground_overlap)
-# np.save("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlap1", overlap, allow_pickle=True)
+# np.save(f"{full_path}", overlap, allow_pickle=True)
+# print(f"saved {expNum} to {full_path}.npy")
 
 # overlap = calculate_overlap_matrix(np.array(filtered_depth_paths), np.array(filtered_poses), np.array(filtered_intrinsics))
 # print(overlap)
 
-path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlapNew1.npy"
-calc = np.load(path, allow_pickle=True)
+
 # # and ground_overlap
 
 # for i in range(calc.shape[0]):
@@ -330,13 +414,41 @@ calc = np.load(path, allow_pickle=True)
 #         if calc[i][j] != ground_overlap[i][j]:
 #             if (calc[i][j] != -1 or calc[i][j] != 0) and (ground_overlap[i][j] != -1 or ground_overlap[i][j] != 0):
 #                 print(f"Calculated overlap: {calc[i][j]}, Ground truth overlap: {ground_overlap[i][j]}, Index: ({i}, {j})")
-
+def count_matching_values(calculated_matrix, ground_truth_matrix):
+    """Count the number of matching values in two matrices, excluding -1 and 0."""
+    # Ensure the matrices have the same shape
+    if calculated_matrix.shape != ground_truth_matrix.shape:
+        raise ValueError("Matrices must have the same dimensions.")
+    
+    count = 0
+    # Iterate over all elements in the matrices
+    for i in range(calculated_matrix.shape[0]):
+        for j in range(calculated_matrix.shape[1]):
+            if calculated_matrix[i, j] == ground_truth_matrix[i, j] and calculated_matrix[i, j] not in [-1, 0]:
+                count += 1
+    
+    return count
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+path = full_path + ".npy"
+calc = np.load(path, allow_pickle=True)
+
 calculated_overlap_matrix = calc
-ground_truth_overlap_matrix = ground_overlap
+
+
+path2 = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlapNew1.npy"
+usingGround = True
+
+if not usingGround:
+    ground_truth_overlap_matrix = np.load(path2, allow_pickle=True)
+    secondTitle = path2.split("/")[-1].split(".")[0]
+else:
+    secondTitle = "ground truth"
+    ground_truth_overlap_matrix = ground_overlap
+
+titleStr = path.split("/")[-1].split(".")[0] + " vs " + secondTitle
 
 # Assume 'calculated_matrix' and 'ground_truth_matrix' are your numpy arrays for the matrices
 calculated_matrix = np.array(calculated_overlap_matrix)
@@ -356,9 +468,30 @@ ax[1].set_title('Ground Truth Overlap Matrix')
 fig.colorbar(gax, ax=ax[1])
 
 # Save the figure
-plt.savefig('/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matricesNEW.png')
+plt.title(titleStr)
+plt.savefig(f'/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png')
 plt.close()  # Close the plot to free up memory
-print("Plot saved to: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matricesNEW.png")
+
+comparison = np.isclose(calculated_matrix, ground_truth_matrix, atol=0.01)
+
+# Find indices where comparison is False and print corresponding values
+false_indices = np.where(comparison == False)
+print("Indices and Values where comparison is False:")
+for idx in zip(false_indices[0], false_indices[1]):
+    calc_value = calculated_matrix[idx]
+    truth_value = ground_truth_matrix[idx]
+    print(f"Index: {idx}, Calculated Value: {calc_value}, Ground Truth Value: {truth_value}")
+
+print("Comparison Result (True means close enough):")
+print()
+
+count = count_matching_values(calculated_matrix, ground_truth_matrix)
+print("Number of matching values (excluding -1 and 0):", count)
+
+print(f"Plot saved to: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png")
+
+
+#######################
 
 # def load_and_compare_matrices():
 #     # Paths to the saved matrices
