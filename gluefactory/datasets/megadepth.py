@@ -1100,6 +1100,8 @@ class _PairDataset(torch.utils.data.Dataset):
                 # print("mat shape", mat.shape)
                 # # limited_logger.log("info[overlap_matrix][valid][:, valid]", info["overlap_matrix"][valid][:, valid])
                 
+                ## SKIP USING OVERLAP MATRIX AND JUST PASS IN ALL THE PAIRS!!!
+                # pairs = np.stack(np.where(np.triu(mat, 1)), -1)
 
                 if num_pos is not None:
                     # # limited_logger.log("num_pos", num_pos)
