@@ -27,6 +27,7 @@ from multiprocessing import Pool
 
 # DATA_PATH = Path("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/data/")
 
+usingOverlap = False
 
 logger = logging.getLogger(__name__)
 partial_mode = False
@@ -179,7 +180,7 @@ def load_scene_data(base_dir, scene):
                 # return as 4x4 matrix as expected
                 return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
         else:
-            raise Exception(f"POSE File not found: {file_path}")
+            print(f"POSE File not found: {file_path}")
             return np.array([])
 
     # Handle pose data based on scene naming
@@ -209,7 +210,7 @@ def load_scene_data(base_dir, scene):
     # print(f"NEW Length of data: {length}")
     camera_intrinsics = np.array([K] * length)
 
-    print(f"Length of image data prioor data: {len(image_data)}")
+    # print(f"Length of image data prioor data: {len(image_data)}")
 
     # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
@@ -993,26 +994,38 @@ class _PairDataset(torch.utils.data.Dataset):
                         pairs = np.stack(np.where(pairs), -1)
                         if pairs.size == 0:
                             print("No valid pairs formed; check overlap criteria or add more data.")
+                    
+                    pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
+                    if num_neg is not None:
+                        neg_pairs = np.stack(np.where(mat <= 0.0), -1)
+                        neg_pairs = sample_n(neg_pairs, num_neg, seed)
+                        pairs += [(scene, ind[i], ind[j]) for i, j in pairs]
+                        pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
+                    else:
+                        print("scene invalid:", scene)
+                    
+                    self.items.extend(pairs)
                 else:
                     print("not using the overlap matrices")
                     ## SKIP USING OVERLAP MATRIX AND JUST PASS IN ALL THE PAIRS!!!
-                    pairs = np.stack(np.where(np.triu(mat, 1)), -1)
+                    n = len(ind)  # Number of valid items
 
-                # print(f"\n\ninput to treepdepth pairs is {pairs}")
-                # 0-1 317-318
+                    # Create all unique pairs of these valid indices
+                    pairs = np.stack(np.triu_indices(n, k=1), axis=-1)  # Generate all pairs (i, j) where i < j from valid indices
 
-                # pairs = pairs[:, 2:]
-                # print(pairs.shape)
-                # print(pairs)
-                pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
-                if num_neg is not None:
-                    neg_pairs = np.stack(np.where(mat <= 0.0), -1)
-                    neg_pairs = sample_n(neg_pairs, num_neg, seed)
-                    pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
-                self.items.extend(pairs)
-                # else:
-                #     print("scene invalid:", scene)
-                
+                    original_pairs = ind[pairs]
+
+                    print(f"Total number of valid pairs: {pairs.shape[0]}")
+                    print("Example pairs (by valid index):", pairs[:5])
+                    if 'original_pairs' in locals():
+                        print("Example pairs (by original index):", original_pairs[:5])
+
+                    print(pairs[:3])
+
+                    all_pairs = [(scene, ind[i], ind[j]) for i, j in pairs]
+                    self.items.extend(all_pairs)
+
+
                 ### I added
                 #
                 # logger.info(f"Scene {scene}: {len(pairs)} pairs added.")

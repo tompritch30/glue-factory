@@ -1,4 +1,5 @@
-originalCode = True
+originalCode = False
+
 
 """
         python -m gluefactory.train sp+lg_megadepthtest     --conf gluefactory/configs/superpoint+lightglue_megadepth.yaml     train.load_experiment=sp+lg_homography
@@ -1435,7 +1436,20 @@ else:
                             print()
                             # print(f"depth_paths: {filtered_depth_paths}")
                             # print(f"poses: {filtered_poses}")                    
-                            print(f"intrinsics: {filtered_intrinsics}")                        
+                            print(f"intrinsics: {filtered_intrinsics}")          
+
+                            # Take the first three elements from each list
+                            aafiltered_depth_paths = filtered_depth_paths[:3]
+                            aafiltered_poses = filtered_poses[:3]
+                            aafiltered_intrinsics = filtered_intrinsics[:3]
+
+                            # Print the first three elements
+                            print("-----------------------")
+                            print(f"filtered_depth_paths: {aafiltered_depth_paths}")
+                            print(f"filtered_poses: {aafiltered_poses}")
+                            print(f"filtered_intrinsics: {aafiltered_intrinsics}")
+                            print(f"ground truth overlap matrix: {ground_truth_overlap_matrix[:3, :3]}")
+                            print("-----------------------")
 
                             # Calculate the overlap matrix
                             calculated_overlap_matrix = calculate_overlap_matrix(filtered_depth_paths, filtered_poses, filtered_intrinsics)
