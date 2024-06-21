@@ -124,7 +124,7 @@ def load_scene_data(base_dir, scene):
         fileListDir = base_dir + '/fileLists'
     else:
         fileListDir = base_dir + '/fileListsPartial'
-    print(f"fileListDir: {fileListDir}")
+    # print(f"fileListDir: {fileListDir}")
     
     # Removing 'L_' or 'R_' for pose files naming
     flow_scene = scene.replace('_L', '').replace('_R', '')
@@ -140,7 +140,10 @@ def load_scene_data(base_dir, scene):
     def load_data_from_file(file_path):
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
-                return np.array([line.strip() for line in file.readlines()])
+                data = np.array([line.strip() for line in file.readlines()])
+                if (len(data) <= 0):
+                    print(f"{file_path} data IS EMPTY loaded")
+                return data
         else:
             print(f"{file_path} no data found")
             return np.array([])  # Return an empty array if file does not exist
@@ -167,16 +170,16 @@ def load_scene_data(base_dir, scene):
         return transformation_matrix
 
     def load_poses_from_file(file_path):
-        poses = load_data_from_file(file_path)
-        return np.array([pose_to_matrix(np.fromstring(pose, sep=' ')) for pose in poses], dtype=object)
-        # if os.path.exists(file_path):
-        #     with open(file_path, 'r') as file:
-        #         lines = file.readlines()
-        #         # return as 4x4 matrix as expected
-        #         return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
-
-        # else:
-        #     return np.array([])
+        # poses = load_data_from_file(file_path)
+        # return np.array([pose_to_matrix(np.fromstring(pose, sep=' ')) for pose in poses], dtype=object)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+                # return as 4x4 matrix as expected
+                return np.array([pose_to_matrix(np.fromstring(line, sep=' ')) for line in lines])
+        else:
+            raise Exception(f"POSE File not found: {file_path}")
+            return np.array([])
 
     # Handle pose data based on scene naming
     poses = []
@@ -200,10 +203,12 @@ def load_scene_data(base_dir, scene):
     length = max(len(depth_data), len(image_data), len(flow_data))
     K = np.array([[320.0, 0, 320.0], [0, 320.0, 240.0], [0, 0, 1.0]])
     # HAVE TO HALF THE LENGTH AS INTRINSICS ARE THE SAME FOR LEFT AND RIGHT
-    print(f"Length of data: {length}")
+    # print(f"Length of data: {length}")
     length //= 2
-    print(f"NEW Length of data: {length}")
+    # print(f"NEW Length of data: {length}")
     camera_intrinsics = np.array([K] * length)
+
+    print(f"Length of image data prioor data: {len(image_data)}")
 
     # print(len(image_data), len(depth_data), len(flow_data), len(poses))
 
@@ -283,34 +288,52 @@ def load_scene_data(base_dir, scene):
     #     np.array(image, dtype=object)
     depth_paths = depth_data = np.array(depth_data)
     intrinsics = camera_intrinsics
-    print(f"Type of depth_paths: {type(depth_paths)}")
-    print(f"Length of depth_paths: {len(depth_paths)}")
-    print(f"Shape of depth_paths: {depth_paths.shape}")                
+    # print(f"Type of depth_paths: {type(depth_paths)}")
+    # print(f"Length of depth_paths: {len(depth_paths)}")
+    # print(f"Shape of depth_paths: {depth_paths.shape}")                
 
-    print(f"Type of poses: {type(poses)}")
-    print(f"Length of poses: {len(poses)}")
-    print(f"Shape of poses: {poses.shape}")    
+    # print(f"Type of flow_data: {type(flow_data)}")
+    # print(f"Length of flow_data: {len(flow_data)}")
+    # print(f"Shape of flow_data: {flow_data.shape}")
 
-    print(f"Type of poses[0]: {type(poses[0])}")
-    print(f"Shape of poses[0]: {poses.shape[0]}")
-    print()
+    # print(f"Type of poses: {type(poses)}")
+    # print(f"Length of poses: {len(poses)}")
+    # print(f"Shape of poses: {poses.shape}")    
 
-    try:
-        print(f"Type of poses[0][0]: {type(poses[0][0])}")
-        print(f"Shape of poses[0][0]: {poses.shape[0][0]}")
-        print()
-    except:
-        print("could not [][] index into poses")
+    # print(f"Type of poses[0]: {type(poses[0])}")
+    # print(f"Shape of poses[0]: {poses.shape[0]}")
+    # print()
+
+    # for pose in poses:
+    #     print(f"Type of poses[0]: {type(pose)}")
+    #     print(f"Shape of poses[0]: {pose.shape}")
+
+    # try:
+    #     print(f"Type of poses[0][0]: {type(poses[0][0])}")
+    #     print(f"Shape of poses[0][0]: {poses.shape[0][0]}")
+    #     print()
+    # except:
+    #     print("could not [][] index into poses")
 
 
-    print(f"Type of intrinsics: {type(intrinsics)}")
-    print(f"Length of intrinsics: {len(intrinsics)}")
-    print(f"Shape of intrinsics: {intrinsics.shape}")
+    # print(f"Type of intrinsics: {type(intrinsics)}")
+    # print(f"Length of intrinsics: {len(intrinsics)}")
+    # print(f"Shape of intrinsics: {intrinsics.shape}")
 
-    print(f"Type of image_paths: {type(image_data)}")
-    print(f"Length of image_paths: {len(image_data)}")
-    print(f"Shape of image_paths: {image_data.shape}")
-    raise Exception("stop loading data in")
+    # for intrinsic in intrinsics:
+    #     print(f"Type of intrinsic: {type(intrinsic)}")
+    #     print(f"Shape of intrinsic: {intrinsic.shape}")
+
+    # print(f"Type of image_paths: {type(image_data)}")
+    # print(f"Length of image_paths: {len(image_data)}")
+    # print(f"Shape of image_paths: {image_data.shape}")
+    # raise Exception("stop loading data in")
+
+    # image_path  (2329,)
+    # depth_path  (2329,)
+    # flow_data  (2328,)
+    # intrinsics  (2329, 3, 3)
+    # poses  (2329, 4, 4)
 
     return {
         "image_paths": image_data,

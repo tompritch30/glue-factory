@@ -390,35 +390,44 @@ class _PairDataset(torch.utils.data.Dataset):
                 intrinsics = info["intrinsics"]
                 ground_truth_overlap_matrix = info["overlap_matrix"]
 
-                print("--------------------------------------")
-                print(f"Type of depth_paths: {type(depth_paths)}")
-                print(f"Length of depth_paths: {len(depth_paths)}")
-                print(f"Shape of depth_paths: {depth_paths.shape}")                
+                # print("--------------------------------------")
+                # print(f"Type of depth_paths: {type(depth_paths)}")
+                # print(f"Length of depth_paths: {len(depth_paths)}")
+                # print(f"Shape of depth_paths: {depth_paths.shape}")                
 
-                print(f"Type of poses: {type(poses)}")
-                print(f"Length of poses: {len(poses)}")
-                print(f"Shape of poses: {poses.shape}")
+                # print(f"Type of poses: {type(poses)}")
+                # print(f"Length of poses: {len(poses)}")
+                # print(f"Shape of poses: {poses.shape}")
 
-                print()
-                print(f"Type of poses[0]: {type(poses[0])}")
-                print(f"Shape of poses[0]: {poses.shape[0]}")
+                # for pose in poses:
+                #     print(f"Type of poses[0]: {type(pose)}")
+                #     print(f"Shape of poses[0]: {pose.shape}")
 
-                try:
-                    print(f"Type of poses[0][0]: {type(poses[0][0])}")
-                    print(f"Shape of poses[0][0]: {poses.shape[0][0]}")
-                    print()
-                except:
-                    print("could not [][] index into poses")
+                # print() 
+                # print()
+                # print(f"Type of poses[1]: {type(poses[1])}")
+                # print(f"Shape of poses[1]: {poses.shape[1]}")
 
-                print(f"Type of intrinsics: {type(intrinsics)}")
-                print(f"Length of intrinsics: {len(intrinsics)}")
-                print(f"Shape of intrinsics: {intrinsics.shape}")
+                # try:
+                #     print(f"Type of poses[0][0]: {type(poses[0][0])}")
+                #     print(f"Shape of poses[0][0]: {poses.shape[0][0]}")
+                #     print()
+                # except:
+                #     print("could not [][] index into poses")
 
-                print(f"Type of image_paths: {type(info['image_paths'])}")
-                print(f"Length of image_paths: {len(info['image_paths'])}")
-                print(f"Shape of image_paths: {info['image_paths'].shape}")
-                print("--------------------------------------")
-                raise Exception("stop loading data in")
+                # print(f"Type of intrinsics: {type(intrinsics)}")
+                # print(f"Length of intrinsics: {len(intrinsics)}")
+                # print(f"Shape of intrinsics: {intrinsics.shape}")
+
+                # for intrinsic in intrinsics:
+                #     print(f"Type of intrinsic: {type(intrinsic)}")
+                #     print(f"Shape of intrinsic: {intrinsic.shape}")
+
+                # print(f"Type of image_paths: {type(info['image_paths'])}")
+                # print(f"Length of image_paths: {len(info['image_paths'])}")
+                # print(f"Shape of image_paths: {info['image_paths'].shape}")
+                # print("--------------------------------------")
+                # raise Exception("stop loading data in")
 
                 """
                 Type of depth_paths: <class 'numpy.ndarray'>
