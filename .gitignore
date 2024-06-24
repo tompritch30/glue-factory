@@ -10,6 +10,8 @@ __pycache__
 /data/
 /outputs/
 
+*.npy
+
 # Exception for .py and .sh files in data and outputs directories
 # data/**/*.txt
 # data/**/*.png
