@@ -330,165 +330,165 @@ var = "0204_depth"
 #         print(f"{i} and depth {depth[i]}")
 
 
-def save_depth_data(base_dir, var, index, depth_path):
-    import os
-    # Ensure the base directory exists
-    os.makedirs(base_dir, exist_ok=True)
+# def save_depth_data(base_dir, var, index, depth_path):
+#     import os
+#     # Ensure the base directory exists
+#     os.makedirs(base_dir, exist_ok=True)
     
-    # Load data from file
-    data = load_npy_file(depth_path)
-    if data is not None:
-        # Save the numpy array
-        save_path = f"{base_dir}/{var}_{index}.npy"
-        np.save(save_path, data, allow_pickle=True)
-        print(f"Data saved to {save_path}")
-    else:
-        print(f"Failed to load data from {depth_path}")
-
-"""
-i want to for loop from 0 to 300 and then i wil ceheck in this path: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting .. for a file in theformat of f"{var}_{i}" (these are defined ebfore and the i comes form the for loop. if no file exists then 
-"""
-
-###### Save shapes of all the depth arrays
-# directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting"
-
-# # List to store the shapes
-# shapes = []
-
-# # Loop through all files in the directory
-# for file in os.listdir(directory):
-#     if file.endswith(".npy"):
-#         # Load the .npy file
-#         data = np.load(os.path.join(directory, file))
-#         # Append the shape of the numpy array to the list
-#         shapes.append(data.shape)
-#         print(file, data.shape)
-
-# # Convert list of shapes to a numpy array
-# shapes_array = np.array(shapes)
-
-# # Save the numpy array with shapes to a .npy file
-# save_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/depthDims"
-# np.save(save_path, shapes_array)
-# var = np.load("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_depth_15.npy", allow_pickle=True)
-# print(var)
-# print(var.shape)
-#####
-
-#### save depth data for al the paths in depth
-# for i in range(depth.shape[0]):
-#     if depth[i] is not None:
-#         save_depth_data(base_dir, var, i, depth[i])
+#     # Load data from file
+#     data = load_npy_file(depth_path)
+#     if data is not None:
+#         # Save the numpy array
+#         save_path = f"{base_dir}/{var}_{index}.npy"
+#         np.save(save_path, data, allow_pickle=True)
+#         print(f"Data saved to {save_path}")
 #     else:
-#         print(f"Depth at index {i} is None")
+#         print(f"Failed to load data from {depth_path}")
 
-####### Finds taht the None values for depth are -1 in ground truth overlap matrix
-# for i in range(depth.shape[0]):
-#     for j in range(depth.shape[0]):
-#         if ground_overlap[i][j] != -1:
-#             print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
-#         # if depth[i] is None and ground_overlap[i][j] != -1:
-        #     print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
+# """
+# i want to for loop from 0 to 300 and then i wil ceheck in this path: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting .. for a file in theformat of f"{var}_{i}" (these are defined ebfore and the i comes form the for loop. if no file exists then 
+# """
+
+# ###### Save shapes of all the depth arrays
+# # directory = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting"
+
+# # # List to store the shapes
+# # shapes = []
+
+# # # Loop through all files in the directory
+# # for file in os.listdir(directory):
+# #     if file.endswith(".npy"):
+# #         # Load the .npy file
+# #         data = np.load(os.path.join(directory, file))
+# #         # Append the shape of the numpy array to the list
+# #         shapes.append(data.shape)
+# #         print(file, data.shape)
+
+# # # Convert list of shapes to a numpy array
+# # shapes_array = np.array(shapes)
+
+# # # Save the numpy array with shapes to a .npy file
+# # save_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/depthDims"
+# # np.save(save_path, shapes_array)
+# # var = np.load("/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_depth_15.npy", allow_pickle=True)
+# # print(var)
+# # print(var.shape)
+# #####
+
+# #### save depth data for al the paths in depth
+# # for i in range(depth.shape[0]):
+# #     if depth[i] is not None:
+# #         save_depth_data(base_dir, var, i, depth[i])
+# #     else:
+# #         print(f"Depth at index {i} is None")
+
+# ####### Finds taht the None values for depth are -1 in ground truth overlap matrix
+# # for i in range(depth.shape[0]):
+# #     for j in range(depth.shape[0]):
+# #         if ground_overlap[i][j] != -1:
+# #             print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
+# #         # if depth[i] is None and ground_overlap[i][j] != -1:
+#         #     print(f"Depth value: {depth[i]}, Overlap matrix value: {ground_overlap[i][j]}, Index: ({i}, {j})")
 
 
-#### Calculate overlap matrix
-# print(depth, poses, intrinsics)
-# print(ground_overlap)
-expNum = "changedOverlapPose"
-path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlap"
-full_path = path + expNum
-# overlap = calculate_overlap_matrix(depth, poses, intrinsics)
-# print(overlap)
-# print(ground_overlap)
-# np.save(f"{full_path}", overlap, allow_pickle=True)
-# print(f"saved {expNum} to {full_path}.npy")
+# #### Calculate overlap matrix
+# # print(depth, poses, intrinsics)
+# # print(ground_overlap)
+# expNum = "changedOverlapPose"
+# path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlap"
+# full_path = path + expNum
+# # overlap = calculate_overlap_matrix(depth, poses, intrinsics)
+# # print(overlap)
+# # print(ground_overlap)
+# # np.save(f"{full_path}", overlap, allow_pickle=True)
+# # print(f"saved {expNum} to {full_path}.npy")
 
-# overlap = calculate_overlap_matrix(np.array(filtered_depth_paths), np.array(filtered_poses), np.array(filtered_intrinsics))
-# print(overlap)
+# # overlap = calculate_overlap_matrix(np.array(filtered_depth_paths), np.array(filtered_poses), np.array(filtered_intrinsics))
+# # print(overlap)
 
 
-# # and ground_overlap
+# # # and ground_overlap
 
-# for i in range(calc.shape[0]):
-#     for j in range(calc.shape[0]):
-#         if calc[i][j] != ground_overlap[i][j]:
-#             if (calc[i][j] != -1 or calc[i][j] != 0) and (ground_overlap[i][j] != -1 or ground_overlap[i][j] != 0):
-#                 print(f"Calculated overlap: {calc[i][j]}, Ground truth overlap: {ground_overlap[i][j]}, Index: ({i}, {j})")
-def count_matching_values(calculated_matrix, ground_truth_matrix):
-    """Count the number of matching values in two matrices, excluding -1 and 0."""
-    # Ensure the matrices have the same shape
-    if calculated_matrix.shape != ground_truth_matrix.shape:
-        raise ValueError("Matrices must have the same dimensions.")
+# # for i in range(calc.shape[0]):
+# #     for j in range(calc.shape[0]):
+# #         if calc[i][j] != ground_overlap[i][j]:
+# #             if (calc[i][j] != -1 or calc[i][j] != 0) and (ground_overlap[i][j] != -1 or ground_overlap[i][j] != 0):
+# #                 print(f"Calculated overlap: {calc[i][j]}, Ground truth overlap: {ground_overlap[i][j]}, Index: ({i}, {j})")
+# def count_matching_values(calculated_matrix, ground_truth_matrix):
+#     """Count the number of matching values in two matrices, excluding -1 and 0."""
+#     # Ensure the matrices have the same shape
+#     if calculated_matrix.shape != ground_truth_matrix.shape:
+#         raise ValueError("Matrices must have the same dimensions.")
     
-    count = 0
-    # Iterate over all elements in the matrices
-    for i in range(calculated_matrix.shape[0]):
-        for j in range(calculated_matrix.shape[1]):
-            if calculated_matrix[i, j] == ground_truth_matrix[i, j] and calculated_matrix[i, j] not in [-1, 0]:
-                count += 1
+#     count = 0
+#     # Iterate over all elements in the matrices
+#     for i in range(calculated_matrix.shape[0]):
+#         for j in range(calculated_matrix.shape[1]):
+#             if calculated_matrix[i, j] == ground_truth_matrix[i, j] and calculated_matrix[i, j] not in [-1, 0]:
+#                 count += 1
     
-    return count
+#     return count
 
-import numpy as np
-import matplotlib.pyplot as plt
+# import numpy as np
+# import matplotlib.pyplot as plt
 
-path = full_path + ".npy"
-calc = np.load(path, allow_pickle=True)
+# path = full_path + ".npy"
+# calc = np.load(path, allow_pickle=True)
 
-calculated_overlap_matrix = calc
+# calculated_overlap_matrix = calc
 
 
-path2 = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlapNew1.npy"
-usingGround = True
+# path2 = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/0204_calculated_overlapNew1.npy"
+# usingGround = True
 
-if not usingGround:
-    ground_truth_overlap_matrix = np.load(path2, allow_pickle=True)
-    secondTitle = path2.split("/")[-1].split(".")[0]
-else:
-    secondTitle = "ground truth"
-    ground_truth_overlap_matrix = ground_overlap
+# if not usingGround:
+#     ground_truth_overlap_matrix = np.load(path2, allow_pickle=True)
+#     secondTitle = path2.split("/")[-1].split(".")[0]
+# else:
+#     secondTitle = "ground truth"
+#     ground_truth_overlap_matrix = ground_overlap
 
-titleStr = path.split("/")[-1].split(".")[0] + " vs " + secondTitle
+# titleStr = path.split("/")[-1].split(".")[0] + " vs " + secondTitle
 
-# Assume 'calculated_matrix' and 'ground_truth_matrix' are your numpy arrays for the matrices
-calculated_matrix = np.array(calculated_overlap_matrix)
-ground_truth_matrix = np.array(ground_truth_overlap_matrix)
+# # Assume 'calculated_matrix' and 'ground_truth_matrix' are your numpy arrays for the matrices
+# calculated_matrix = np.array(calculated_overlap_matrix)
+# ground_truth_matrix = np.array(ground_truth_overlap_matrix)
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-cmap = "viridis"  # Color map for visualization
+# fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+# cmap = "viridis"  # Color map for visualization
 
-# Plot calculated overlap matrix
-cax = ax[0].imshow(calculated_matrix, cmap=cmap, interpolation='nearest')
-ax[0].set_title('Calculated Overlap Matrix')
-fig.colorbar(cax, ax=ax[0])
+# # Plot calculated overlap matrix
+# cax = ax[0].imshow(calculated_matrix, cmap=cmap, interpolation='nearest')
+# ax[0].set_title('Calculated Overlap Matrix')
+# fig.colorbar(cax, ax=ax[0])
 
-# Plot ground truth overlap matrix
-gax = ax[1].imshow(ground_truth_matrix, cmap=cmap, interpolation='nearest')
-ax[1].set_title('Ground Truth Overlap Matrix')
-fig.colorbar(gax, ax=ax[1])
+# # Plot ground truth overlap matrix
+# gax = ax[1].imshow(ground_truth_matrix, cmap=cmap, interpolation='nearest')
+# ax[1].set_title('Ground Truth Overlap Matrix')
+# fig.colorbar(gax, ax=ax[1])
 
-# Save the figure
-plt.title(titleStr)
-plt.savefig(f'/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png')
-plt.close()  # Close the plot to free up memory
+# # Save the figure
+# plt.title(titleStr)
+# plt.savefig(f'/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png')
+# plt.close()  # Close the plot to free up memory
 
-comparison = np.isclose(calculated_matrix, ground_truth_matrix, atol=0.01)
+# comparison = np.isclose(calculated_matrix, ground_truth_matrix, atol=0.01)
 
-# Find indices where comparison is False and print corresponding values
-false_indices = np.where(comparison == False)
-print("Indices and Values where comparison is False:")
-for idx in zip(false_indices[0], false_indices[1]):
-    calc_value = calculated_matrix[idx]
-    truth_value = ground_truth_matrix[idx]
-    print(f"Index: {idx}, Calculated Value: {calc_value}, Ground Truth Value: {truth_value}")
+# # Find indices where comparison is False and print corresponding values
+# false_indices = np.where(comparison == False)
+# print("Indices and Values where comparison is False:")
+# for idx in zip(false_indices[0], false_indices[1]):
+#     calc_value = calculated_matrix[idx]
+#     truth_value = ground_truth_matrix[idx]
+#     print(f"Index: {idx}, Calculated Value: {calc_value}, Ground Truth Value: {truth_value}")
 
-print("Comparison Result (True means close enough):")
-print()
+# print("Comparison Result (True means close enough):")
+# print()
 
-count = count_matching_values(calculated_matrix, ground_truth_matrix)
-print("Number of matching values (excluding -1 and 0):", count)
+# count = count_matching_values(calculated_matrix, ground_truth_matrix)
+# print("Number of matching values (excluding -1 and 0):", count)
 
-print(f"Plot saved to: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png")
+# print(f"Plot saved to: /homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/overlapTesting/overlap_matrices{expNum}.png")
 
 
 #######################

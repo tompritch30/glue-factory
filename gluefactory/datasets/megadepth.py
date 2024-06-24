@@ -216,7 +216,8 @@ if originalCode:
                     valid = (self.images[scene] != None) & (  # noqa: E711
                         self.depths[scene] != None  # noqa: E711
                     )
-                    ind = np.where(valid)[0]
+                    ind = np.where(valid)[0]                    
+
                     mat = info["overlap_matrix"][valid][:, valid]
 
                     if num_pos is not None:
@@ -840,8 +841,23 @@ else:
                 # print("path", path)
                 
                 try:
+                    print(str(path))
+                    exit()
                     info = np.load(str(path), allow_pickle=True)
                     
+                    #########HEREHERE
+                    to_save = "0001"
+                    if scene == to_save:
+                        print("Saving full info data for scene 0001")
+                        import pickle                        
+                        with open('/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.pickle"', 'wb') as handle:
+                            pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                        # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.npy", info, allow_pickle=True)
+                        exit()
+                    else: 
+                        # skip scenes not to_save
+                        # print(f"Skipping scene {scene}")
+                        continue
 
                     # ### I added
                     # if count == 6:
@@ -1458,10 +1474,10 @@ else:
                             # print(f"filtered_intrinsics: {aafiltered_intrinsics}")
                             # print(f"ground truth overlap matrix: {ground_truth_overlap_matrix[:3, :3]}")
                             # print("-----------------------")
-                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_depth", info["depth_paths"], allow_pickle=True)
-                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_poses", info["poses"], allow_pickle=True)
-                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_intrinsics", info["intrinsics"], allow_pickle=True)
-                            np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_groundOverlap", info["overlap_matrix"], allow_pickle=True)
+                            # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_depth", info["depth_paths"], allow_pickle=True)
+                            # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_poses", info["poses"], allow_pickle=True)
+                            # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_intrinsics", info["intrinsics"], allow_pickle=True)
+                            # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory{scene}_groundOverlap", info["overlap_matrix"], allow_pickle=True)
                             
 
                             # Calculate the overlap matrix
@@ -1497,27 +1513,29 @@ else:
                                 print(f"Error comparing calculated and ground truth overlap matrices: {str(e)} for {scene}")
                                 
                             # Save directories and file paths
-                            import os
-                            save_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets"
-                            calculated_path = os.path.join(save_dir, f"{scene}_calculated_overlap.npy")
-                            ground_truth_path = os.path.join(save_dir, f"{scene}_ground_truth_overlap.npy")
+                            saving_overlap = False
+                            if saving_overlap:
+                                import os
+                                save_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/datasets"
+                                calculated_path = os.path.join(save_dir, f"{scene}_calculated_overlap.npy")
+                                ground_truth_path = os.path.join(save_dir, f"{scene}_ground_truth_overlap.npy")
 
-                            # Ensure the save directory exists
-                            if not os.path.exists(save_dir):
-                                os.makedirs(save_dir)
+                                # Ensure the save directory exists
+                                if not os.path.exists(save_dir):
+                                    os.makedirs(save_dir)
 
-                            # Save the calculated overlap matrix
-                            np.save(calculated_path, calculated_overlap_matrix)
-                            print(f"Calculated overlap matrix saved to: {calculated_path}")
+                                # Save the calculated overlap matrix
+                                np.save(calculated_path, calculated_overlap_matrix)
+                                print(f"Calculated overlap matrix saved to: {calculated_path}")
 
-                            # Save the full overlap matrix
-                            full_overlap_path = os.path.join(save_dir, f"{scene}_full_overlap.npy")
-                            np.save(full_overlap_path, full_overlap_matrix)
-                            print(f"Full overlap matrix saved to: {full_overlap_path}")
+                                # Save the full overlap matrix
+                                full_overlap_path = os.path.join(save_dir, f"{scene}_full_overlap.npy")
+                                np.save(full_overlap_path, full_overlap_matrix)
+                                print(f"Full overlap matrix saved to: {full_overlap_path}")
 
-                            # Save the ground truth overlap matrix
-                            np.save(ground_truth_path, ground_truth_overlap_matrix)
-                            print(f"Ground truth overlap matrix saved to: {ground_truth_path}")
+                                # Save the ground truth overlap matrix
+                                np.save(ground_truth_path, ground_truth_overlap_matrix)
+                                print(f"Ground truth overlap matrix saved to: {ground_truth_path}")
                     
                 except Exception as e:
                     
