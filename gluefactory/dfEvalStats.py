@@ -72,7 +72,7 @@ dataframe_path = "/vol/bitbucket/tp4618/SuperGlueThesis/external/glue-factory/ou
 # will take this None_Train_20240627_104708
 filename = dataframe_path.split("/")[-1].split(".")[0]
 # Set basdir 
-base_image_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory"
+base_image_dir = f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/gluefactory/{filename}"
 df = pd.read_pickle(dataframe_path)
 
 #### Accuracy

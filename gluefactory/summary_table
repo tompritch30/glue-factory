@@ -1,0 +1,15 @@
+\begin{tabular}{lrrrl}
+\toprule
+ & RGB model & Grayscale Model & Mean Difference & p-value \\
+\midrule
+match_recall & 0.976400 & 0.974500 & 0.001900 & NA \\
+match_precision & 0.870000 & 0.866300 & 0.003700 & NA \\
+accuracy & 0.977700 & 0.976300 & 0.001400 & NA \\
+average_precision & 0.848000 & 0.843400 & 0.004600 & NA \\
+loss/total & 0.082000 & 0.087800 & -0.005800 & NA \\
+loss/nll_neg & 0.051200 & 0.055200 & -0.004000 & NA \\
+loss/num_matchable & 125.000000 & 125.800000 & -0.800000 & NA \\
+loss/num_unmatchable & 372.400000 & 371.400000 & 1.000000 & NA \\
+loss/row_norm & 0.980600 & 0.979100 & 0.001500 & NA \\
+\bottomrule
+\end{tabular}
