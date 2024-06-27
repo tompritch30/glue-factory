@@ -1,3 +1,4 @@
+## this is not from glue-facotyr but form lightglue original paper!
 import warnings
 from pathlib import Path
 from types import SimpleNamespace
@@ -407,6 +408,11 @@ class LightGlue(nn.Module):
         )
 
         state_dict = None
+        checkpoint_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training/sp+lg_densehomography/checkpoint_best.tar"
+        print(torch.load(checkpoint_path, map_location="cpu").keys())
+        state_dict = torch.load(checkpoint_path, map_location="cpu")['state_dict']
+        self.load_state_dict(state_dict, strict=False)
+        
         if features is not None:
             fname = f"{conf.weights}_{self.version.replace('.', '-')}.pth"
             state_dict = torch.hub.load_state_dict_from_url(
