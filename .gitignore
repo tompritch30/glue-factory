@@ -11,6 +11,7 @@ __pycache__
 /outputs/
 
 *.npy
+*.jpg
 
 # Exception for .py and .sh files in data and outputs directories
 # data/**/*.txt
