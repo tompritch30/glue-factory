@@ -406,46 +406,64 @@ class LoadedLightGlue(nn.Module):
                 [self.confidence_threshold(i) for i in range(self.conf.n_layers)]
             ),
         )
-
+        #@TODO - to print out state_dict when using my way vs the default way, they shape, keys etc - see if just a bad model or ba input format 
         state_dict = None
         """        
         sp+lg_debug            sp+lg_homography  sp+lg_megadepthtest          sp+lg_overlap             sp+lg_rgbdensehomography2  sp+lg_treedepth_16_06  sp+lg_treedepthNoFilter
         sp+lg_densehomography  sp+lg_megadepth   sp+lg_megadepthtestNOFILTER  sp+lg_rgbdensehomography  sp+lg_treedepth            sp+lg_treedepthdebug   sp+lg_treedepthPartial
         """
-        checkpoint_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training/sp+lg_densehomography/checkpoint_best.tar"
+        loadingModel = False
+        if loadingModel:
+            checkpoint_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training/sp+lg_densehomography/checkpoint_best.tar"
         # print(torch.load(checkpoint_path, map_location="cpu")['model'])
-        state_dict = torch.load(checkpoint_path, map_location="cpu")['model']
-        # new_state_dict = {}
-        # for key, tensor in state_dict.items():
-        #     flat_tensor = tensor.flatten()
-        #     # Create a mask to zero out half of the weights randomly
-        #     mask = np.random.choice([0, 1], size=flat_tensor.shape, p=[0.5, 0.5])
-        #     masked_tensor = torch.from_numpy(mask).to(tensor.device).type(tensor.dtype) * flat_tensor
-        #     new_state_dict[key] = masked_tensor.view(tensor.shape)
-        # state_dict = new_state_dict
+            state_dict = torch.load(checkpoint_path, map_location="cpu")['model']
+            self.load_state_dict(state_dict, strict=False)
+        else:
+            new_state_dict = {}
+            for key, tensor in state_dict.items():
+                flat_tensor = tensor.flatten()
+                # Create a mask to zero out half of the weights randomly
+                mask = np.random.choice([0, 1], size=flat_tensor.shape, p=[0.5, 0.5])
+                masked_tensor = torch.from_numpy(mask).to(tensor.device).type(tensor.dtype) * flat_tensor
+                new_state_dict[key] = masked_tensor.view(tensor.shape)
+            state_dict = new_state_dict
 
-        self.load_state_dict(state_dict, strict=False)
+            if features is not None:
+                print("features are not none")
+                fname = f"{conf.weights}_{self.version.replace('.', '-')}.pth"
+                state_dict = torch.hub.load_state_dict_from_url(
+                    self.url.format(self.version, features), file_name=fname
+                )
+                self.load_state_dict(state_dict, strict=False)
+            elif conf.weights is not None:
+                print("weights are not none")
+                path = Path(__file__).parent
+                path = path / "weights/{}.pth".format(self.conf.weights)
+                state_dict = torch.load(str(path), map_location="cpu")
+
+            if state_dict:
+                # rename old state dict entries
+                for i in range(self.conf.n_layers):
+                    pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
+                    state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+                    pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
+                    state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+                self.load_state_dict(state_dict, strict=False)
         
-        # if features is not None:
-        #     fname = f"{conf.weights}_{self.version.replace('.', '-')}.pth"
-        #     state_dict = torch.hub.load_state_dict_from_url(
-        #         self.url.format(self.version, features), file_name=fname
-        #     )
-        #     self.load_state_dict(state_dict, strict=False)
-        # elif conf.weights is not None:
-        #     path = Path(__file__).parent
-        #     path = path / "weights/{}.pth".format(self.conf.weights)
-        #     state_dict = torch.load(str(path), map_location="cpu")
+        print("Loading model from checkpoint" if loadingModel else "Using default model")
 
-        # if state_dict:
-        #     # rename old state dict entries
-        #     for i in range(self.conf.n_layers):
-        #         pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
-        #         state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
-        #         pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
-        #         state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
-        #     self.load_state_dict(state_dict, strict=False)
+        try:
+            print("state_dict.shape", state_dict.shape)
+        except:
+            print("len(state_dict)", len(state_dict))
 
+        print("state_dict.keys()", state_dict.keys())
+
+        """
+        len(state_dict) 275
+        state_dict.keys() odict_keys(['extractor.conv1a.weight', 'extractor.conv1a.bias', 'extractor.conv1b.weight', 'extractor.conv1b.bias', 'extractor.conv2a.weight', 'extractor.conv2a.bias', 'extractor.conv2b.weight', 'extractor.conv2b.bias', 'extractor.conv3a.weight', 'extractor.conv3a.bias', 'extractor.conv3b.weight', 'extractor.conv3b.bias', 'extractor.conv4a.weight', 'extractor.conv4a.bias', 'extractor.conv4b.weight', 'extractor.conv4b.bias', 'extractor.convPa.weight', 'extractor.convPa.bias', 'extractor.convPb.weight', 'extractor.convPb.bias', 'extractor.convDa.weight', 'extractor.convDa.bias', 'extractor.convDb.weight', 'extractor.convDb.bias', 'matcher.posenc.Wr.weight', 'matcher.transformers.0.self_attn.Wqkv.weight', 'matcher.transformers.0.self_attn.Wqkv.bias', 'matcher.transformers.0.self_attn.out_proj.weight', 'matcher.transformers.0.self_attn.out_proj.bias', 'matcher.transformers.0.self_attn.ffn.0.weight', 'matcher.transformers.0.self_attn.ffn.0.bias', 'matcher.transformers.0.self_attn.ffn.1.weight', 'matcher.transformers.0.self_attn.ffn.1.bias', 'matcher.transformers.0.self_attn.ffn.3.weight', 'matcher.transformers.0.self_attn.ffn.3.bias', 'matcher.transformers.0.cross_attn.to_qk.weight', 'matcher.transformers.0.cross_attn.to_qk.bias', 'matcher.transformers.0.cross_attn.to_v.weight', 'matcher.transformers.0.cross_attn.to_v.bias', 'matcher.transformers.0.cross_attn.to_out.weight', 'matcher.transformers.0.cross_attn.to_out.bias', 'matcher.transformers.0.cross_attn.ffn.0.weight', 'matcher.transformers.0.cross_attn.ffn.0.bias', 'matcher.transformers.0.cross_attn.ffn.1.weight', 'matcher.transformers.0.cross_attn.ffn.1.bias', 'matcher.transformers.0.cross_attn.ffn.3.weight', 'matcher.transformers.0.cross_attn.ffn.3.bias', 'matcher.transformers.1.self_attn.Wqkv.weight', 'matcher.transformers.1.self_attn.Wqkv.bias', 'matcher.transformers.1.self_attn.out_proj.weight', 'matcher.transformers.1.self_attn.out_proj.bias', 'matcher.transformers.1.self_attn.ffn.0.weight', 'matcher.transformers.1.self_attn.ffn.0.bias', 'matcher.transformers.1.self_attn.ffn.1.weight', 'matcher.transformers.1.self_attn.ffn.1.bias', 'matcher.transformers.1.self_attn.ffn.3.weight', 'matcher.transformers.1.self_attn.ffn.3.bias', 'matcher.transformers.1.cross_attn.to_qk.weight', 'matcher.transformers.1.cross_attn.to_qk.bias', 'matcher.transformers.1.cross_attn.to_v.weight', 'matcher.transformers.1.cross_attn.to_v.bias', 'matcher.transformers.1.cross_attn.to_out.weight', 'matcher.transformers.1.cross_attn.to_out.bias', 'matcher.transformers.1.cross_attn.ffn.0.weight', 'matcher.transformers.1.cross_attn.ffn.0.bias', 'matcher.transformers.1.cross_attn.ffn.1.weight', 'matcher.transformers.1.cross_attn.ffn.1.bias', 'matcher.transformers.1.cross_attn.ffn.3.weight', 'matcher.transformers.1.cross_attn.ffn.3.bias', 'matcher.transformers.2.self_attn.Wqkv.weight', 'matcher.transformers.2.self_attn.Wqkv.bias', 'matcher.transformers.2.self_attn.out_proj.weight', 'matcher.transformers.2.self_attn.out_proj.bias', 'matcher.transformers.2.self_attn.ffn.0.weight', 'matcher.transformers.2.self_attn.ffn.0.bias', 'matcher.transformers.2.self_attn.ffn.1.weight', 'matcher.transformers.2.self_attn.ffn.1.bias', 'matcher.transformers.2.self_attn.ffn.3.weight', 'matcher.transformers.2.self_attn.ffn.3.bias', 'matcher.transformers.2.cross_attn.to_qk.weight', 'matcher.transformers.2.cross_attn.to_qk.bias', 'matcher.transformers.2.cross_attn.to_v.weight', 'matcher.transformers.2.cross_attn.to_v.bias', 'matcher.transformers.2.cross_attn.to_out.weight', 'matcher.transformers.2.cross_attn.to_out.bias', 'matcher.transformers.2.cross_attn.ffn.0.weight', 'matcher.transformers.2.cross_attn.ffn.0.bias', 'matcher.transformers.2.cross_attn.ffn.1.weight', 'matcher.transformers.2.cross_attn.ffn.1.bias', 'matcher.transformers.2.cross_attn.ffn.3.weight', 'matcher.transformers.2.cross_attn.ffn.3.bias', 'matcher.transformers.3.self_attn.Wqkv.weight', 'matcher.transformers.3.self_attn.Wqkv.bias', 'matcher.transformers.3.self_attn.out_proj.weight', 'matcher.transformers.3.self_attn.out_proj.bias', 'matcher.transformers.3.self_attn.ffn.0.weight', 'matcher.transformers.3.self_attn.ffn.0.bias', 'matcher.transformers.3.self_attn.ffn.1.weight', 'matcher.transformers.3.self_attn.ffn.1.bias', 'matcher.transformers.3.self_attn.ffn.3.weight', 'matcher.transformers.3.self_attn.ffn.3.bias', 'matcher.transformers.3.cross_attn.to_qk.weight', 'matcher.transformers.3.cross_attn.to_qk.bias', 'matcher.transformers.3.cross_attn.to_v.weight', 'matcher.transformers.3.cross_attn.to_v.bias', 'matcher.transformers.3.cross_attn.to_out.weight', 'matcher.transformers.3.cross_attn.to_out.bias', 'matcher.transformers.3.cross_attn.ffn.0.weight', 'matcher.transformers.3.cross_attn.ffn.0.bias', 'matcher.transformers.3.cross_attn.ffn.1.weight', 'matcher.transformers.3.cross_attn.ffn.1.bias', 'matcher.transformers.3.cross_attn.ffn.3.weight', 'matcher.transformers.3.cross_attn.ffn.3.bias', 'matcher.transformers.4.self_attn.Wqkv.weight', 'matcher.transformers.4.self_attn.Wqkv.bias', 'matcher.transformers.4.self_attn.out_proj.weight', 'matcher.transformers.4.self_attn.out_proj.bias', 'matcher.transformers.4.self_attn.ffn.0.weight', 'matcher.transformers.4.self_attn.ffn.0.bias', 'matcher.transformers.4.self_attn.ffn.1.weight', 'matcher.transformers.4.self_attn.ffn.1.bias', 'matcher.transformers.4.self_attn.ffn.3.weight', 'matcher.transformers.4.self_attn.ffn.3.bias', 'matcher.transformers.4.cross_attn.to_qk.weight', 'matcher.transformers.4.cross_attn.to_qk.bias', 'matcher.transformers.4.cross_attn.to_v.weight', 'matcher.transformers.4.cross_attn.to_v.bias', 'matcher.transformers.4.cross_attn.to_out.weight', 'matcher.transformers.4.cross_attn.to_out.bias', 'matcher.transformers.4.cross_attn.ffn.0.weight', 'matcher.transformers.4.cross_attn.ffn.0.bias', 'matcher.transformers.4.cross_attn.ffn.1.weight', 'matcher.transformers.4.cross_attn.ffn.1.bias', 'matcher.transformers.4.cross_attn.ffn.3.weight', 'matcher.transformers.4.cross_attn.ffn.3.bias', 'matcher.transformers.5.self_attn.Wqkv.weight', 'matcher.transformers.5.self_attn.Wqkv.bias', 'matcher.transformers.5.self_attn.out_proj.weight', 'matcher.transformers.5.self_attn.out_proj.bias', 'matcher.transformers.5.self_attn.ffn.0.weight', 'matcher.transformers.5.self_attn.ffn.0.bias', 'matcher.transformers.5.self_attn.ffn.1.weight', 'matcher.transformers.5.self_attn.ffn.1.bias', 'matcher.transformers.5.self_attn.ffn.3.weight', 'matcher.transformers.5.self_attn.ffn.3.bias', 'matcher.transformers.5.cross_attn.to_qk.weight', 'matcher.transformers.5.cross_attn.to_qk.bias', 'matcher.transformers.5.cross_attn.to_v.weight', 'matcher.transformers.5.cross_attn.to_v.bias', 'matcher.transformers.5.cross_attn.to_out.weight', 'matcher.transformers.5.cross_attn.to_out.bias', 'matcher.transformers.5.cross_attn.ffn.0.weight', 'matcher.transformers.5.cross_attn.ffn.0.bias', 'matcher.transformers.5.cross_attn.ffn.1.weight', 'matcher.transformers.5.cross_attn.ffn.1.bias', 'matcher.transformers.5.cross_attn.ffn.3.weight', 'matcher.transformers.5.cross_attn.ffn.3.bias', 'matcher.transformers.6.self_attn.Wqkv.weight', 'matcher.transformers.6.self_attn.Wqkv.bias', 'matcher.transformers.6.self_attn.out_proj.weight', 'matcher.transformers.6.self_attn.out_proj.bias', 'matcher.transformers.6.self_attn.ffn.0.weight', 'matcher.transformers.6.self_attn.ffn.0.bias', 'matcher.transformers.6.self_attn.ffn.1.weight', 'matcher.transformers.6.self_attn.ffn.1.bias', 'matcher.transformers.6.self_attn.ffn.3.weight', 'matcher.transformers.6.self_attn.ffn.3.bias', 'matcher.transformers.6.cross_attn.to_qk.weight', 'matcher.transformers.6.cross_attn.to_qk.bias', 'matcher.transformers.6.cross_attn.to_v.weight', 'matcher.transformers.6.cross_attn.to_v.bias', 'matcher.transformers.6.cross_attn.to_out.weight', 'matcher.transformers.6.cross_attn.to_out.bias', 'matcher.transformers.6.cross_attn.ffn.0.weight', 'matcher.transformers.6.cross_attn.ffn.0.bias', 'matcher.transformers.6.cross_attn.ffn.1.weight', 'matcher.transformers.6.cross_attn.ffn.1.bias', 'matcher.transformers.6.cross_attn.ffn.3.weight', 'matcher.transformers.6.cross_attn.ffn.3.bias', 'matcher.transformers.7.self_attn.Wqkv.weight', 'matcher.transformers.7.self_attn.Wqkv.bias', 'matcher.transformers.7.self_attn.out_proj.weight', 'matcher.transformers.7.self_attn.out_proj.bias', 'matcher.transformers.7.self_attn.ffn.0.weight', 'matcher.transformers.7.self_attn.ffn.0.bias', 'matcher.transformers.7.self_attn.ffn.1.weight', 'matcher.transformers.7.self_attn.ffn.1.bias', 'matcher.transformers.7.self_attn.ffn.3.weight', 'matcher.transformers.7.self_attn.ffn.3.bias', 'matcher.transformers.7.cross_attn.to_qk.weight', 'matcher.transformers.7.cross_attn.to_qk.bias', 'matcher.transformers.7.cross_attn.to_v.weight', 'matcher.transformers.7.cross_attn.to_v.bias', 'matcher.transformers.7.cross_attn.to_out.weight', 'matcher.transformers.7.cross_attn.to_out.bias', 'matcher.transformers.7.cross_attn.ffn.0.weight', 'matcher.transformers.7.cross_attn.ffn.0.bias', 'matcher.transformers.7.cross_attn.ffn.1.weight', 'matcher.transformers.7.cross_attn.ffn.1.bias', 'matcher.transformers.7.cross_attn.ffn.3.weight', 'matcher.transformers.7.cross_attn.ffn.3.bias', 'matcher.transformers.8.self_attn.Wqkv.weight', 'matcher.transformers.8.self_attn.Wqkv.bias', 'matcher.transformers.8.self_attn.out_proj.weight', 'matcher.transformers.8.self_attn.out_proj.bias', 'matcher.transformers.8.self_attn.ffn.0.weight', 'matcher.transformers.8.self_attn.ffn.0.bias', 'matcher.transformers.8.self_attn.ffn.1.weight', 'matcher.transformers.8.self_attn.ffn.1.bias', 'matcher.transformers.8.self_attn.ffn.3.weight', 'matcher.transformers.8.self_attn.ffn.3.bias', 'matcher.transformers.8.cross_attn.to_qk.weight', 'matcher.transformers.8.cross_attn.to_qk.bias', 'matcher.transformers.8.cross_attn.to_v.weight', 'matcher.transformers.8.cross_attn.to_v.bias', 'matcher.transformers.8.cross_attn.to_out.weight', 'matcher.transformers.8.cross_attn.to_out.bias', 'matcher.transformers.8.cross_attn.ffn.0.weight', 'matcher.transformers.8.cross_attn.ffn.0.bias', 'matcher.transformers.8.cross_attn.ffn.1.weight', 'matcher.transformers.8.cross_attn.ffn.1.bias', 'matcher.transformers.8.cross_attn.ffn.3.weight', 'matcher.transformers.8.cross_attn.ffn.3.bias', 'matcher.log_assignment.0.matchability.weight', 'matcher.log_assignment.0.matchability.bias', 'matcher.log_assignment.0.final_proj.weight', 'matcher.log_assignment.0.final_proj.bias', 'matcher.log_assignment.1.matchability.weight', 'matcher.log_assignment.1.matchability.bias', 'matcher.log_assignment.1.final_proj.weight', 'matcher.log_assignment.1.final_proj.bias', 'matcher.log_assignment.2.matchability.weight', 'matcher.log_assignment.2.matchability.bias', 'matcher.log_assignment.2.final_proj.weight', 'matcher.log_assignment.2.final_proj.bias', 'matcher.log_assignment.3.matchability.weight', 'matcher.log_assignment.3.matchability.bias', 'matcher.log_assignment.3.final_proj.weight', 'matcher.log_assignment.3.final_proj.bias', 'matcher.log_assignment.4.matchability.weight', 'matcher.log_assignment.4.matchability.bias', 'matcher.log_assignment.4.final_proj.weight', 'matcher.log_assignment.4.final_proj.bias', 'matcher.log_assignment.5.matchability.weight', 'matcher.log_assignment.5.matchability.bias', 'matcher.log_assignment.5.final_proj.weight', 'matcher.log_assignment.5.final_proj.bias', 'matcher.log_assignment.6.matchability.weight', 'matcher.log_assignment.6.matchability.bias', 'matcher.log_assignment.6.final_proj.weight', 'matcher.log_assignment.6.final_proj.bias', 'matcher.log_assignment.7.matchability.weight', 'matcher.log_assignment.7.matchability.bias', 'matcher.log_assignment.7.final_proj.weight', 'matcher.log_assignment.7.final_proj.bias', 'matcher.log_assignment.8.matchability.weight', 'matcher.log_assignment.8.matchability.bias', 'matcher.log_assignment.8.final_proj.weight', 'matcher.log_assignment.8.final_proj.bias', 'matcher.token_confidence.0.token.0.weight', 'matcher.token_confidence.0.token.0.bias', 'matcher.token_confidence.1.token.0.weight', 'matcher.token_confidence.1.token.0.bias', 'matcher.token_confidence.2.token.0.weight', 'matcher.token_confidence.2.token.0.bias', 'matcher.token_confidence.3.token.0.weight', 'matcher.token_confidence.3.token.0.bias', 'matcher.token_confidence.4.token.0.weight', 'matcher.token_confidence.4.token.0.bias', 'matcher.token_confidence.5.token.0.weight', 'matcher.token_confidence.5.token.0.bias', 'matcher.token_confidence.6.token.0.weight', 'matcher.token_confidence.6.token.0.bias', 'matcher.token_confidence.7.token.0.weight', 'matcher.token_confidence.7.token.0.bias'])
+        """
+        
         # static lengths LightGlue is compiled for (only used with torch.compile)
         self.static_lengths = None
 
