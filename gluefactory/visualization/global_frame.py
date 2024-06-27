@@ -2,6 +2,9 @@ import functools
 import traceback
 from copy import deepcopy
 
+import matplotlib
+matplotlib.use('WebAgg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button
@@ -12,7 +15,6 @@ from ..datasets.base_dataset import collate
 # from ..eval.export_predictions import load_predictions
 from ..models.cache_loader import CacheLoader
 from .tools import RadioHideTool
-
 
 
 class GlobalFrame:
@@ -77,10 +79,30 @@ class GlobalFrame:
             active=self.conf.y,
             keymap="y",
         )
-        if self.fig.canvas.manager.toolbar is not None:
+
+        # Now safely add tools
+        # self.add_tools_to_toolbar()
+        if self.fig.canvas.manager.toolbar: # is not None:
             self.fig.canvas.manager.toolbar.add_tool("x", "navigation")
             self.fig.canvas.manager.toolbar.add_tool("y", "navigation")
-
+        # else:
+        #     print("Toolbar is not initialized!")
+        
+        # # Ensure toolbar initialization
+        # self.fig.canvas.manager.toolbar.add_tool("x", "navigation")
+        # self.fig.canvas.manager.toolbar.add_tool("y", "navigation")
+    
+    # def ensure_toolbar_initialized(self):
+    #     # if not hasattr(self.fig.canvas.manager, 'toolbar'):
+    #     from matplotlib.backends.backend_webagg import NavigationToolbar2WebAgg
+    #     self.fig.canvas.manager.toolbar = NavigationToolbar2WebAgg(self.fig.canvas)
+    #     self.fig.canvas.manager.toolbar.update()
+    #     # # if self.fig.canvas.manager.toolbar is None:
+    #     #     print("Failed to initialize the toolbar.")
+    #     # else:
+    #     #     print("Toolbar is initialized.")
+    #     #     self.add_tools_to_toolbar() 
+    
     def init_frame(self):
         """initialize frame"""
         fig, ax = plt.subplots()
