@@ -40,6 +40,7 @@ python -m gluefactory.train sp+lg_homography \  --conf gluefactory/configs/super
 python -m gluefactory.train sp+lg_densehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
 python -m gluefactory.train sp+lg_rgbdensehomography \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml
 python -m gluefactory.train sp+lg_rgbdensehomography --rgb \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml 
+python -m gluefactory.train sp+lg_rgbdensehomogtest --rgb \  --conf gluefactory/configs/superpoint+lightglue_homography_denseForest.yaml 
 """
 
 
@@ -318,6 +319,7 @@ class _Dataset(torch.utils.data.Dataset):
         # Additional image modes handling
         if self.conf.image_mode == 'RGBD':
             print("in rgb mode in data loader")
+            exit()
             # depth_path = img_path.with_suffix('.npy')  # Assuming depth data is in the same directory with .npy extension
             # depth = np.load(depth_path)
             # depth = np.expand_dims(depth, axis=2)  # Ensure depth has a third dimension
@@ -326,6 +328,7 @@ class _Dataset(torch.utils.data.Dataset):
 
         elif self.conf.image_mode == 'stereo':
             print("in stereo mode in data loader")
+            exit()
             # # Assuming left and right images are stored as name_left.jpg and name_right.jpg
             # left_img_path = img_path.with_name(name + '_left.jpg')
             # right_img_path = img_path.with_name(name + '_right.jpg')

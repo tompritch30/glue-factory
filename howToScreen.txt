@@ -89,6 +89,17 @@ screen -S <name> -X quit
 
 nvidia-smi
 
+
+This answer works for only a scenario where your end target is to paste the copied buffer contents immediately.
+The simplest way to do this is by splitting your screen into two regions. You can do this by hitting CTRL+a then 
+|'This is not an i. It is the PIPE sign on your keyboard'
+Hit CTRL+a then TAB to switch to the second region, CTRL+a then c to create a new session in the second region.
+If you want to copy from nano and paste in terminal, open up the file in nano on the left region, hit CTRL+a then ESC, 
+scroll to the start point of your copy location and hit SPACE, select the text by scrolling to the end point and hit SPACE again to mark copy. 
+Now, all you have to do is hit CTRL+a then TAB to switch to the region on your right and hit CTRL+a then ].
+Your text will be written out to the command line. Note that you can also check for hardcopy option if you want to write directly to file.
+
+
 How to Select and Copy Text in screen Copy Mode:
 
     Enter Copy Mode:
