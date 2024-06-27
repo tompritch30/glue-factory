@@ -188,7 +188,7 @@ def pack_lr_parameters(params, base_lr, lr_scaling):
     return lr_params
 
 
-def training(rank, conf, output_dir, args, results_df=None):
+def training(rank, conf, output_dir, args, results_df=None, train_df=None, save_train=True, save_val=True):
     if args.restore:
         logger.info(f"Restoring from previous training of {args.experiment}")
         try:
@@ -485,6 +485,37 @@ def training(rank, conf, output_dir, args, results_df=None):
                         losses[k] /= train_loader.batch_size * args.n_gpus
                     losses[k] = torch.mean(losses[k], -1)
                     losses[k] = losses[k].item()
+                
+                # Only if in save_train mode
+                if save_train:
+                    if train_df.empty:
+                        # Initialize DataFrame with an empty structure if it's the first time
+                        train_df = pd.DataFrame()
+                    
+                    # Prepare data to log
+                    data_to_log = {
+                        "epoch": epoch,
+                        "iteration": it,
+                        **{k: float(v) for k, v in losses.items()}  # Ensure all loss values are converted to float
+                    }
+                    print(f"debugging in data_to_log, iteraiton: {it}")
+
+                    # Create a DataFrame from the dictionary for the new entry
+                    new_entry = pd.DataFrame([data_to_log])
+
+                    # Append the new entry to the DataFrame
+                    train_df = pd.concat([train_df, new_entry], ignore_index=True)
+
+                    # Debug print statement for each row to be added
+                    print(f"Data to be logged to training DataFrame: {data_to_log}")
+
+                    # Periodically save DataFrame to avoid data loss on long runs, every 500 iterations
+                    if it % 200 == 0 and it > 0:
+                        intermediate_filename = f"{conf.train.load_experiment}_intermediate_{epoch}_{it}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+                        intermediate_full_path = Path(output_dir) / intermediate_filename
+                        train_df.to_pickle(intermediate_full_path)
+                        logger.info(f"Intermediate training DataFrame saved to: {intermediate_full_path}")
+
                 if rank == 0:
                     str_losses = [f"{k} {v:.3E}" for k, v in losses.items()]
                     logger.info(
@@ -540,39 +571,38 @@ def training(rank, conf, output_dir, args, results_df=None):
                         if isinstance(v, float)
                     ]
                     
-                    # data_to_log = {
-                    #     "epoch": epoch,
-                    #     "iteration": it, 
-                    #     **{k: v for k, v in results.items() if isinstance(v, float)},
-                    #     **{f"{k}/count": v for k, v in results.items() if not isinstance(v, (float, dict))}                       
-                    # }
+                    if save_val:
+                        data_to_log = {
+                            "epoch": epoch,
+                            "iteration": it, 
+                            **{k: v for k, v in results.items() if isinstance(v, float)},
+                            **{f"{k}/count": v for k, v in results.items() if not isinstance(v, (float, dict))}                       
+                        }
 
-                    # # Example DAta
-                    # # data_to_log = { {'match_recall': 0.0013469622049299668, 'match_precision': 0.20794148392811837, 'accuracy': 0.5956995072409651, 'average_precision': 0.0005695512580326218, 'loss/total': 4.590367807489951, 'loss/last': 4.590367807489951, 'loss/assignment_nll': 4.590367807489951, 'loss/nll_pos': 8.375255136280598, 'loss/nll_neg': 0.8054804704779741, 'loss/num_matchable': 203.15047021943573, 'loss/num_unmatchable': 296.8989028213166, 'loss/row_norm': 0.4694024619637612, 'epoch': 0, 'iteration': 0}}
-                    # if results_df.empty:
-                    #     # Assuming data_to_log is your first log entry with all necessary keys
-                    #     results_df = pd.DataFrame(columns=data_to_log.keys())
+                        # Example DAta
+                        # data_to_log = { {'match_recall': 0.0013469622049299668, 'match_precision': 0.20794148392811837, 'accuracy': 0.5956995072409651, 'average_precision': 0.0005695512580326218, 'loss/total': 4.590367807489951, 'loss/last': 4.590367807489951, 'loss/assignment_nll': 4.590367807489951, 'loss/nll_pos': 8.375255136280598, 'loss/nll_neg': 0.8054804704779741, 'loss/num_matchable': 203.15047021943573, 'loss/num_unmatchable': 296.8989028213166, 'loss/row_norm': 0.4694024619637612, 'epoch': 0, 'iteration': 0}}
+                        if results_df.empty:
+                            # Assuming data_to_log is your first log entry with all necessary keys
+                            results_df = pd.DataFrame(columns=data_to_log.keys())
 
-                    # # Append new data to the DataFrame
-                    # new_entry = pd.DataFrame([data_to_log])
-                    # results_df = pd.concat([results_df, new_entry], ignore_index=True)
+                        # Append new data to the DataFrame
+                        new_entry = pd.DataFrame([data_to_log])
+                        results_df = pd.concat([results_df, new_entry], ignore_index=True)
 
-                    # # Debug print statement for each row to be added
-                    # print(f"Data to be logged: {data_to_log}")
+                        # Debug print statement for each row to be added
+                        print(f"Data to be logged: {data_to_log}")
 
-                    # # Use loc to append data for efficiency
-                    # # results_df.loc[len(results_df)] = data_to_log
+                        # Use loc to append data for efficiency
+                        # results_df.loc[len(results_df)] = data_to_log
 
-                    # if not output_dir:
-                    #     output_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training"
+                        if not output_dir:
+                            output_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training"
 
-                    # # Periodically save DataFrame to avoid data loss on long runs
-                    # filename = f"{conf.train.load_experiment}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
-                    # full_path = Path(output_dir) / filename
-                    # results_df.to_pickle(full_path)
-                    # logger.info(f"Intermediate DataFrame saved to: {full_path}")
-
-
+                        # Periodically save DataFrame to avoid data loss on long runs
+                        filename = f"{conf.train.load_experiment}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+                        full_path = Path(output_dir) / filename
+                        results_df.to_pickle(full_path)
+                        logger.info(f"Intermediate DataFrame saved to: {full_path}")
 
                     logger.info(f'[Validation] {{{", ".join(str_results)}}}')
                     for k, v in results.items():
@@ -583,7 +613,7 @@ def training(rank, conf, output_dir, args, results_df=None):
                     for k, v in pr_metrics.items():
                         writer.add_pr_curve("val/" + k, *v, tot_n_samples)
                     # @TODO: optional always save checkpoint
-                    print(results.keys())
+                    # print(results.keys())
                     if results[conf.train.best_key] < best_eval:
                         best_eval = results[conf.train.best_key]
                         save_experiment(
@@ -658,18 +688,69 @@ def training(rank, conf, output_dir, args, results_df=None):
         epoch += 1
 
     logger.info(f"Finished training on process {rank}.")
-    # Save DataFrame at the end of training or periodically
-    filename = f"{conf.train.load_experiment}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+    
+    # Lots of repeated coed
+    # if save_val:
+    #     # Save DataFrame at the end of training 
+    #     filename = f"{conf.train.load_experiment}_Validation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+    #     if not output_dir:
+    #         output_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training"
+
+    #     full_path = Path(output_dir) / filename  # Ensure `output_dir` is defined where you want to save
+
+    #     # Save to pickle file
+    #     results_df.to_pickle(full_path)
+
+    #     # Print full path for user
+    #     print(f"Validation DataFrame saved to: {full_path}")
+
+    # if save_train:
+    #     # Save DataFrame at the end of training 
+    #     filename = f"{conf.train.load_experiment}_Train_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+    #     if not output_dir:
+    #         output_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training"
+
+    #     full_path = Path(output_dir) / filename  # Ensure `output_dir` is defined where you want to save
+
+    #     # Save to pickle file
+    #     results_df.to_pickle(full_path)
+
+    #     # Print full path for user
+    #     print(f"Train DataFrame saved to: {full_path}")
+
+    def save_dataframe(df, output_dir, experiment_name, data_type):
+        """
+        Saves the given DataFrame to a specified directory with a timestamped filename.
+
+        Args:
+        - df (pd.DataFrame): DataFrame to save.
+        - output_dir (str): Directory where the DataFrame will be saved.
+        - experiment_name (str): Base name of the experiment for filename generation.
+        - data_type (str): Type of data ('Validation' or 'Train') to distinguish the filename.
+        """
+        # Ensure the output directory exists, create if not
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        # Generate filename with current date and time
+        filename = f"{experiment_name}_{data_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+        full_path = Path(output_dir) / filename
+
+        # Save to pickle file
+        df.to_pickle(full_path)
+
+        # Print full path for user
+        print(f"{data_type} DataFrame saved to: {full_path}")
+    
     if not output_dir:
         output_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training"
 
-    full_path = Path(output_dir) / filename  # Ensure `output_dir` is defined where you want to save
+    if save_val:
+        # Save validation DataFrame at the end of training
+        save_dataframe(results_df, output_dir, conf.train.load_experiment, "Validation")
 
-    # Save to pickle file
-    results_df.to_pickle(full_path)
-
-    # Print full path for user
-    print(f"DataFrame saved to: {full_path}")
+    if save_train:
+        # Save training DataFrame at the end of training
+        save_dataframe(train_df, output_dir, conf.train.load_experiment, "Train")
 
     if rank == 0:
         writer.close()
@@ -678,12 +759,13 @@ def training(rank, conf, output_dir, args, results_df=None):
 def main_worker(rank, conf, output_dir, args):
     # Global dataframe for logging to file 
     results_df = pd.DataFrame()
+    train_df = pd.DataFrame()
     
     if rank == 0:
         with capture_outputs(output_dir / "log.txt"):
-            training(rank, conf, output_dir, args, results_df)
+            training(rank, conf, output_dir, args, results_df, train_df)
     else:
-        training(rank, conf, output_dir, args, results_df)
+        training(rank, conf, output_dir, args, results_df, train_df)
 
 
 if __name__ == "__main__":    
