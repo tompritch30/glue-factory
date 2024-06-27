@@ -412,31 +412,39 @@ class LoadedLightGlue(nn.Module):
         sp+lg_debug            sp+lg_homography  sp+lg_megadepthtest          sp+lg_overlap             sp+lg_rgbdensehomography2  sp+lg_treedepth_16_06  sp+lg_treedepthNoFilter
         sp+lg_densehomography  sp+lg_megadepth   sp+lg_megadepthtestNOFILTER  sp+lg_rgbdensehomography  sp+lg_treedepth            sp+lg_treedepthdebug   sp+lg_treedepthPartial
         """
-        checkpoint_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training/sp+lg_homography/checkpoint_best.tar"
+        checkpoint_path = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/glue-factory/outputs/training/sp+lg_densehomography/checkpoint_best.tar"
         # print(torch.load(checkpoint_path, map_location="cpu")['model'])
         state_dict = torch.load(checkpoint_path, map_location="cpu")['model']
+        # new_state_dict = {}
+        # for key, tensor in state_dict.items():
+        #     flat_tensor = tensor.flatten()
+        #     # Create a mask to zero out half of the weights randomly
+        #     mask = np.random.choice([0, 1], size=flat_tensor.shape, p=[0.5, 0.5])
+        #     masked_tensor = torch.from_numpy(mask).to(tensor.device).type(tensor.dtype) * flat_tensor
+        #     new_state_dict[key] = masked_tensor.view(tensor.shape)
+        # state_dict = new_state_dict
 
         self.load_state_dict(state_dict, strict=False)
         
-        if features is not None:
-            fname = f"{conf.weights}_{self.version.replace('.', '-')}.pth"
-            state_dict = torch.hub.load_state_dict_from_url(
-                self.url.format(self.version, features), file_name=fname
-            )
-            self.load_state_dict(state_dict, strict=False)
-        elif conf.weights is not None:
-            path = Path(__file__).parent
-            path = path / "weights/{}.pth".format(self.conf.weights)
-            state_dict = torch.load(str(path), map_location="cpu")
+        # if features is not None:
+        #     fname = f"{conf.weights}_{self.version.replace('.', '-')}.pth"
+        #     state_dict = torch.hub.load_state_dict_from_url(
+        #         self.url.format(self.version, features), file_name=fname
+        #     )
+        #     self.load_state_dict(state_dict, strict=False)
+        # elif conf.weights is not None:
+        #     path = Path(__file__).parent
+        #     path = path / "weights/{}.pth".format(self.conf.weights)
+        #     state_dict = torch.load(str(path), map_location="cpu")
 
-        if state_dict:
-            # rename old state dict entries
-            for i in range(self.conf.n_layers):
-                pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
-                state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
-                pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
-                state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
-            self.load_state_dict(state_dict, strict=False)
+        # if state_dict:
+        #     # rename old state dict entries
+        #     for i in range(self.conf.n_layers):
+        #         pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
+        #         state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+        #         pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
+        #         state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+        #     self.load_state_dict(state_dict, strict=False)
 
         # static lengths LightGlue is compiled for (only used with torch.compile)
         self.static_lengths = None

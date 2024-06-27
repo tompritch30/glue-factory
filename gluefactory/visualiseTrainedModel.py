@@ -28,7 +28,7 @@ extractor = SuperPoint(max_num_keypoints=256).eval().to(device)  # load the extr
 matcher = LoadedLightGlue(features="superpoint").eval().to(device)
 
 image0 = load_image(images / "lc_img_0.png")
-image1 = load_image(images / "lc_img_10.png")
+image1 = load_image(images / "lc_img_1.png")
 
 feats0 = extractor.extract(image0.to(device))
 feats1 = extractor.extract(image1.to(device))
