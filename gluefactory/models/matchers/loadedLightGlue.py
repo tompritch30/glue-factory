@@ -443,6 +443,7 @@ class LoadedLightGlue(nn.Module):
 
             if state_dict:
                 # rename old state dict entries
+                print("state dict defined")
                 for i in range(self.conf.n_layers):
                     pattern = f"self_attn.{i}", f"transformers.{i}.self_attn"
                     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
@@ -450,6 +451,9 @@ class LoadedLightGlue(nn.Module):
                     state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
                 self.load_state_dict(state_dict, strict=False)
         
+        ## need to have print statment for state_dict and find what whwer ethe data is being loaded normally
+        ## ensure the code is stil the same as original but the else statment
+        ## compare the keys adnthe lenght and ensure that passing data through in the same way
         print("Loading model from checkpoint" if loadingModel else "Using default model")
 
         try:
