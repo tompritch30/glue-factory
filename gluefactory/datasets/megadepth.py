@@ -1,4 +1,4 @@
-originalCode = False
+originalCode = True
 
 
 """
@@ -209,52 +209,105 @@ if originalCode:
                     ids = [(scene, i) for i in ids]
                     self.items.extend(ids)
             else:
+                using_overlap = False
                 for scene in self.scenes:
-                    path = self.info_dir / (scene + ".npz")
-                    assert path.exists(), path
-                    info = np.load(str(path), allow_pickle=True)
-                    valid = (self.images[scene] != None) & (  # noqa: E711
-                        self.depths[scene] != None  # noqa: E711
-                    )
-                    ind = np.where(valid)[0]                    
-
-                    mat = info["overlap_matrix"][valid][:, valid]
-
-                    if num_pos is not None:
-                        # Sample a subset of pairs, binned by overlap.
-                        num_bins = self.conf.num_overlap_bins
-                        assert num_bins > 0
-                        bin_width = (
-                            self.conf.max_overlap - self.conf.min_overlap
-                        ) / num_bins
-                        num_per_bin = num_pos // num_bins
-                        pairs_all = []
-                        for k in range(num_bins):
-                            bin_min = self.conf.min_overlap + k * bin_width
-                            bin_max = bin_min + bin_width
-                            pairs_bin = (mat > bin_min) & (mat <= bin_max)
-                            pairs_bin = np.stack(np.where(pairs_bin), -1)
-                            pairs_all.append(pairs_bin)
-                        # Skip bins with too few samples
-                        has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
-                        num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
-                        pairs = []
-                        for pairs_bin, keep in zip(pairs_all, has_enough_samples):
-                            if keep:
-                                pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
-                        pairs = np.concatenate(pairs, 0)
-                    else:
-                        pairs = (mat > self.conf.min_overlap) & (
-                            mat <= self.conf.max_overlap
+                    if using_overlap:
+                        path = self.info_dir / (scene + ".npz")
+                        assert path.exists(), path
+                        info = np.load(str(path), allow_pickle=True)
+                        valid = (self.images[scene] != None) & (  # noqa: E711
+                            self.depths[scene] != None  # noqa: E711
                         )
-                        pairs = np.stack(np.where(pairs), -1)
+                        ind = np.where(valid)[0]                    
 
-                    pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
-                    if num_neg is not None:
-                        neg_pairs = np.stack(np.where(mat <= 0.0), -1)
-                        neg_pairs = sample_n(neg_pairs, num_neg, seed)
-                        pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
-                    self.items.extend(pairs)
+                        mat = info["overlap_matrix"][valid][:, valid]
+
+                        if num_pos is not None:
+                            # Sample a subset of pairs, binned by overlap.
+                            num_bins = self.conf.num_overlap_bins
+                            assert num_bins > 0
+                            bin_width = (
+                                self.conf.max_overlap - self.conf.min_overlap
+                            ) / num_bins
+                            num_per_bin = num_pos // num_bins
+                            pairs_all = []
+                            for k in range(num_bins):
+                                bin_min = self.conf.min_overlap + k * bin_width
+                                bin_max = bin_min + bin_width
+                                pairs_bin = (mat > bin_min) & (mat <= bin_max)
+                                pairs_bin = np.stack(np.where(pairs_bin), -1)
+                                pairs_all.append(pairs_bin)
+                            # Skip bins with too few samples
+                            has_enough_samples = [len(p) >= num_per_bin * 2 for p in pairs_all]
+                            num_per_bin_2 = num_pos // max(1, sum(has_enough_samples))
+                            pairs = []
+                            for pairs_bin, keep in zip(pairs_all, has_enough_samples):
+                                if keep:
+                                    pairs.append(sample_n(pairs_bin, num_per_bin_2, seed))
+                            pairs = np.concatenate(pairs, 0)
+                        else:
+                            pairs = (mat > self.conf.min_overlap) & (
+                                mat <= self.conf.max_overlap
+                            )
+                            pairs = np.stack(np.where(pairs), -1)
+
+                        pairs = [(scene, ind[i], ind[j], mat[i, j]) for i, j in pairs]
+                        if num_neg is not None:
+                            neg_pairs = np.stack(np.where(mat <= 0.0), -1)
+                            neg_pairs = sample_n(neg_pairs, num_neg, seed)
+                            pairs += [(scene, ind[i], ind[j], mat[i, j]) for i, j in neg_pairs]
+                        self.items.extend(pairs)
+                        
+                        imagelen = len(self.images[scene])
+                        if str(scene) == "0001":
+                            print(f"found 11621281")
+                            print(f"ALL ONES: {len(pairs)}")
+                            exit()
+
+                    else: ## Not using overlap 
+                        """
+                        ALL ONES: 11621281
+                        Total possible pairs before any removal (only valid depth pairs considered): 122760
+                        Total valid pairs added after applying removal probability: 61206
+
+                        imagelen = len(self.images[scene])
+                        print(f"ALL ONES: {imagelen ** 2}")
+                        #
+
+                        but overlap matrix is: ALL ONES: 99
+                        
+                        """                       
+                        path = self.info_dir / (scene + ".npz")
+                        assert path.exists(), f"Info file missing: {path}"
+                        info = np.load(str(path), allow_pickle=True)
+
+                        # Check for images where both image and depth data are available
+                        valid = (self.images[scene] != None) & (self.depths[scene] != None)  # noqa: E711
+                        ind = np.where(valid)[0]  # Indices of valid images
+
+                        imagelen = len(self.images[scene])
+                        print(f"ALL ONES scene: {scene} with length: {imagelen ** 2}")
+
+                        n_valid_images = len(ind)
+                        total_possible_pairs = n_valid_images * (n_valid_images - 1) // 2
+                        print(f"Total possible pairs before any removal (only valid depth pairs considered): {total_possible_pairs}")
+
+                        remove_probability = 0.5  # Probability of removing a pair
+                        rng = np.random.default_rng(seed)  # Random generator with seed
+
+                        # Loop through all possible pairs of valid images
+                        added_pairs = 0
+                        for i in range(n_valid_images):
+                            for j in range(i + 1, n_valid_images):  # Avoid duplicate pairs and self-pairing
+                                if rng.random() > remove_probability:  # Randomly decide whether to include this pair
+                                    idx_i = ind[i]  # Actual index of the i-th valid image
+                                    idx_j = ind[j]  # Actual index of the j-th valid image
+                                    self.items.append((scene, idx_i, idx_j, 1.0))  # Assuming full overlap for simplicity
+                                    added_pairs += 1
+
+                        print(f"Total valid pairs added after applying removal probability: {added_pairs}")
+
+
             if self.conf.views == 2 and self.conf.sort_by_overlap:
                 self.items.sort(key=lambda i: i[-1], reverse=True)
             else:
@@ -361,7 +414,8 @@ if originalCode:
                 }
                 data["T_0to1"] = data1["T_w2cam"] @ data0["T_w2cam"].inv()
                 data["T_1to0"] = data0["T_w2cam"] @ data1["T_w2cam"].inv()
-                data["overlap_0to1"] = overlap
+                # data["overlap_0to1"] = overlap
+                data["overlap_0to1"] = "WOWOWOW"
                 data["name"] = f"{scene}/{data0['name']}_{data1['name']}"
             else:
                 assert self.conf.views == 1
@@ -841,23 +895,23 @@ else:
                 # print("path", path)
                 
                 try:
-                    print(str(path))
-                    exit()
+                    # print(str(path))
+                    # exit()
                     info = np.load(str(path), allow_pickle=True)
                     
                     #########HEREHERE
-                    to_save = "0001"
-                    if scene == to_save:
-                        print("Saving full info data for scene 0001")
-                        import pickle                        
-                        with open('/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.pickle"', 'wb') as handle:
-                            pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
-                        # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.npy", info, allow_pickle=True)
-                        exit()
-                    else: 
-                        # skip scenes not to_save
-                        # print(f"Skipping scene {scene}")
-                        continue
+                    # to_save = "0001"
+                    # if scene == to_save:
+                    #     print("Saving full info data for scene 0001")
+                    #     import pickle                        
+                    #     with open('/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.pickle"', 'wb') as handle:
+                    #         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    #     # np.save(f"/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/d2-net/{to_save}_info.npy", info, allow_pickle=True)
+                    #     exit()
+                    # else: 
+                    #     # skip scenes not to_save
+                    #     # print(f"Skipping scene {scene}")
+                    #     continue
 
                     # ### I added
                     # if count == 6:
@@ -1837,7 +1891,8 @@ else:
                 }
                 data["T_0to1"] = data1["T_w2cam"] @ data0["T_w2cam"].inv()
                 data["T_1to0"] = data0["T_w2cam"] @ data1["T_w2cam"].inv()
-                data["overlap_0to1"] = overlap
+                # data["overlap_0to1"] = overlap
+                data["overlap_0to1"] = "WOWOWOW"
                 data["name"] = f"{scene}/{data0['name']}_{data1['name']}"
                 ### I added
             #  # logger.info(f"Processed data pair: {data['name']} with overlap {overlap}")
